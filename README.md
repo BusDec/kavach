@@ -12,6 +12,7 @@ Kavach covers SAP security and controls, OT/IT convergence, cloud and identity, 
 - `/business-case/` — C-suite business case: IT/OT risks, incident watch, the cost of waiting, privacy obligations across the US, Europe and India
 - `/pilot/` — customer-connect and pilot request page
 - `/privacy/` — privacy notice for the pilot form
+- `/portfolio/` — handoff to the common Nirmana ERP portfolio page
 
 ## Handouts
 
