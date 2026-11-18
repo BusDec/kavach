@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kavach IT/OT Business Case</title>
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+
+<section class="page dark">
+  <div class="eyebrow">Nirmana ERP · Kavach</div>
+  <h1 style="margin-top:10mm;max-width:15ch;font-size:36pt">The plant is now an IT attack surface.</h1>
+  <p class="lede" style="max-width:58ch;font-size:12pt">
+    An IT/OT business case for asset-intensive enterprises: the paths attackers use,
+    the controls that change the outcome, and the pilot that proves it.
+  </p>
+  <div class="cover-meta">
+    <div class="cover-brand">Kavach · Cybersecurity<strong>IT/OT business case</strong></div>
+    <div class="cover-badge">2026 edition</div>
+  </div>
+  <div class="footer-note"><span>Last reviewed 18 November 2026</span><span>01 / 04</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">01 · The convergence</div>
+  <h2 style="margin-top:5mm;font-size:20pt;max-width:22ch">The boundary moved. The controls did not.</h2>
+  <p class="lede" style="margin-top:3mm;font-size:9.6pt">
+    Historians, engineering workstations, remote support, vendor VPNs and cloud
+    dashboards now connect the plant to the enterprise. Each connection is a business
+    benefit and an attack path. The risk is not that IT and OT are connected; it is
+    that they are connected without the same identity, patch and monitoring discipline.
+  </p>
+
+  <div class="grid3" style="margin-top:7mm">
+    <div class="card">
+      <p class="kicker">Path 01</p>
+      <h3>Credential → remote access → plant</h3>
+      <p>A valid VPN, RDP or remote-support credential is enough to reach an engineering workstation. Attackers rarely need a zero-day; they need one account without MFA and one flat network behind it.</p>
+    </div>
+    <div class="card">
+      <p class="kicker">Path 02</p>
+      <h3>Vendor → IT → OT</h3>
+      <p>Maintenance providers, integrators and OEMs often hold privileged access across sites. A supplier breach can become your outage, as recent third-party incidents show.</p>
+    </div>
+    <div class="card">
+      <p class="kicker">Path 03</p>
+      <h3>Internet-facing app → keys → lateral movement</h3>
+      <p>A public dashboard, portal or web dispatcher can expose sessions, keys or credentials that reach internal servers. Fugaku’s 2026 breach started with a public status page.</p>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+  <div class="grid2">
+    <div>
+      <p class="kicker">What changes the probability</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Inventory every IT/OT asset and its owner</li>
+        <li>Remove internet exposure that does not need to be public</li>
+        <li>MFA and least privilege for every remote path</li>
+        <li>Patch SAP and OT with a risk-based, tested cadence</li>
+        <li>Log and review privileged vendor sessions</li>
+      </ul>
+    </div>
+    <div>
+      <p class="kicker">What changes the duration</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Segmentation that contains lateral movement</li>
+        <li>Offline, immutable backups and a tested restore</li>
+        <li>Decision rights before the incident</li>
+        <li>One incident playbook across IT, OT and legal</li>
+        <li>Pre-agreed communications and regulatory clocks</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-note"><span>Kavach · IT/OT business case</span><span>02 / 04</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">02 · The controls</div>
+  <h2 style="margin-top:5mm;font-size:20pt;max-width:22ch">Control the path, not just the device.</h2>
+  <p class="lede" style="margin-top:3mm;font-size:9.6pt">
+    Most OT security programmes start with a tool. Start with the paths that can stop
+    the business, then choose the control that closes or monitors each path.
+  </p>
+
+  <table style="margin-top:6mm">
+    <thead><tr><th style="width:22%">Control</th><th style="width:37%">What good looks like</th><th>Evidence the board can see</th></tr></thead>
+    <tbody>
+      <tr><td>Asset inventory</td><td>Every SAP client, plant, PLC, HMI, historian, gateway and remote path has an owner, version and exposure status.</td><td>Coverage %; unknown assets; owner sign-off</td></tr>
+      <tr><td>Segmentation</td><td>IT, DMZ, OT and safety zones with deny-by-default flows and documented exceptions. No flat plant network.</td><td>Zone map; open flows; exceptions approved</td></tr>
+      <tr><td>Remote access</td><td>MFA, just-in-time access, session recording and a named approver for vendors and engineers.</td><td>Privileged sessions reviewed; standing access removed</td></tr>
+      <tr><td>Patch and configuration</td><td>Risk-based cadence for SAP and OT; compensating controls where patching is unsafe; tested rollback.</td><td>Mean time to patch; open criticals; compensating controls</td></tr>
+      <tr><td>Monitoring</td><td>Identity, network and OT telemetry correlated; alerts tied to an owner and a runbook.</td><td>Mean time to detect; alerts closed; false-positive rate</td></tr>
+      <tr><td>Recovery</td><td>Offline backups, a tested restore sequence and a manual-operation plan with safety sign-off.</td><td>Restore time; last test date; gaps closed</td></tr>
+      <tr><td>Incident response</td><td>One playbook for IT, OT, legal, communications and the board; tested in a tabletop.</td><td>Tabletop completed; actions closed; notification test</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:5mm">
+    <p><strong>The trap:</strong> treating OT like IT. You cannot reboot a turbine or a treatment train on a Tuesday patch window. The answer is not to skip the control; it is to design a compensating control, a safe maintenance window and a tested rollback.</p>
+  </div>
+  <div class="footer-note"><span>Kavach · IT/OT business case</span><span>03 / 04</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">03 · The business case</div>
+  <h2 style="margin-top:5mm;font-size:20pt;max-width:22ch">What the board is buying.</h2>
+  <p class="lede" style="margin-top:3mm;font-size:9.6pt">
+    A lower probability of a material incident, a shorter duration when one happens,
+    and evidence that the organisation can answer its regulator, insurer and customers.
+  </p>
+
+  <div class="grid3" style="margin-top:7mm">
+    <div class="stat"><b>₹25.5 crore</b><span>Average cost of a data breach in India, 2026</span><em>IBM</em></div>
+    <div class="stat"><b>30+</b><span>Water systems in one coordinated OT attack</span><em>Jul 2026</em></div>
+    <div class="stat"><b>72 h</b><span>GDPR notification window</span><em>EU GDPR</em></div>
+  </div>
+
+  <div class="rule"></div>
+  <div class="grid2">
+    <div>
+      <p class="kicker">Without the programme</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Unknown remote paths and vendor accounts</li>
+        <li>SAP criticals open beyond the patch window</li>
+        <li>Backups never restored under test</li>
+        <li>Incident roles invented during the incident</li>
+        <li>Regulator questions answered from memory</li>
+      </ul>
+    </div>
+    <div>
+      <p class="kicker">With the programme</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Every path has an owner, a control and a metric</li>
+        <li>Critical SAP and OT exposures closed or compensated</li>
+        <li>Recovery time known and rehearsed</li>
+        <li>Decision rights and notification clocks pre-agreed</li>
+        <li>One evidence pack for board, auditor and insurer</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:6mm">
+    <p><strong>The pilot.</strong> 8–12 weeks, one business unit or one critical estate. We map the paths, test two or three controls, rehearse the incident and leave a costed 90-day plan. Success measures are agreed before kick-off.</p>
+  </div>
+
+  <div class="rule"></div>
+  <p class="kicker">Contact</p>
+  <p style="margin-top:2mm">Dr. Santosh K Behera · <a href="mailto:pilot@nirmanaerp.com">pilot@nirmanaerp.com</a><br>
+    Nirmana ERP, Bhubaneswar · <a href="https://kavach.nirmanaerp.com/pilot.html">kavach.nirmanaerp.com/pilot</a></p>
+  <div class="footer-note"><span>Kavach · IT/OT business case</span><span>04 / 04</span></div>
+</section>
+
+</body>
+</html>

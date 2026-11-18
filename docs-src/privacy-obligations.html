@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kavach Privacy Obligations</title>
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+
+<section class="page dark">
+  <div class="eyebrow">Nirmana ERP · Kavach</div>
+  <h1 style="margin-top:10mm;max-width:15ch;font-size:36pt">One incident. Several regulators.</h1>
+  <p class="lede" style="max-width:58ch;font-size:12pt">
+    A practical guide to data protection obligations in the US, Europe and India —
+    and what they mean for SAP, HR, cloud and OT-adjacent data.
+  </p>
+  <div class="cover-meta">
+    <div class="cover-brand">Kavach · Cybersecurity<strong>Privacy obligations</strong></div>
+    <div class="cover-badge">2026 edition</div>
+  </div>
+  <div class="footer-note"><span>Not legal advice · Last reviewed 18 November 2026</span><span>01 / 04</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">01 · The comparison</div>
+  <h2 style="margin-top:5mm;font-size:20pt;max-width:22ch">Three regimes, three clocks.</h2>
+  <p class="lede" style="margin-top:3mm;font-size:9.4pt">
+    The same incident can trigger different obligations depending on where the data
+    subjects, the controller, the processor and the affected systems are located.
+    Do not assume the strictest regime covers the others.
+  </p>
+
+  <table style="margin-top:5mm">
+    <thead><tr><th style="width:13%">Jurisdiction</th><th style="width:24%">Main framework</th><th style="width:24%">Breach clock</th><th style="width:20%">Maximum penalty</th><th>What it means for SAP / OT data</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>European Union</td>
+        <td>GDPR (2016/679); NIS2 (2022/2555) for essential and important entities; DORA for financial entities</td>
+        <td>72 hours to the supervisory authority after awareness; NIS2 early warning in 24 hours and incident notification in 72 hours</td>
+        <td class="hot">GDPR: €20m or 4% of global annual turnover. NIS2: at least €10m or 2% for essential entities</td>
+        <td>Employee and customer data across SAP, cloud and suppliers. OT incidents may also be NIS2 incidents. International transfers and processor clauses matter.</td>
+      </tr>
+      <tr>
+        <td>United States</td>
+        <td>No federal omnibus privacy law; state laws (CCPA/CPRA and others), sector rules (HIPAA, GLBA), SEC disclosure</td>
+        <td>SEC: material incidents on Form 8-K within four business days of the materiality determination; state breach laws vary</td>
+        <td class="hot">CCPA/CPRA: $2,500 per violation, $7,500 per intentional violation or involving minors; HIPAA up to $1.5m per year per category</td>
+        <td>Build a 50-state notification matrix. SEC materiality is a board judgement. Vendor contracts and data maps are evidence.</td>
+      </tr>
+      <tr>
+        <td>India</td>
+        <td>Digital Personal Data Protection Act, 2023 and DPDP Rules, 2025; CERT-In directions; RBI, SEBI and telecom rules</td>
+        <td>CERT-In: report incidents within 6 hours; DPDP notification to the Data Protection Board and affected persons without delay, as the rules phase in</td>
+        <td class="hot">Up to ₹250 crore for failure to take reasonable security safeguards under the DPDP Act</td>
+        <td>Consent, purpose limitation and security safeguards apply to digital personal data in SAP HR, payroll, customer and vendor records. Full obligations phase in through 2027.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout" style="margin-top:5mm">
+    <p><strong>The practical point:</strong> the notification clock starts when you become aware, not when you finish the investigation. The ability to assess scope in hours depends on the data map, logging and access evidence you built before the incident.</p>
+  </div>
+  <div class="footer-note"><span>Kavach · Privacy obligations</span><span>02 / 04</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">02 · The wider map</div>
+  <h2 style="margin-top:5mm;font-size:20pt;max-width:22ch">Beyond the big three.</h2>
+  <p class="lede" style="margin-top:3mm;font-size:9.4pt">
+    If you operate across borders, the group incident response plan needs a
+    jurisdiction matrix, not a single paragraph in the legal playbook.
+  </p>
+
+  <table style="margin-top:5mm">
+    <thead><tr><th style="width:15%">Jurisdiction</th><th style="width:28%">Framework</th><th style="width:26%">Breach clock</th><th>Maximum penalty</th></tr></thead>
+    <tbody>
+      <tr><td>United Kingdom</td><td>UK GDPR and Data Protection Act 2018</td><td>72 hours to the ICO after awareness</td><td class="hot">£17.5m or 4% of global annual turnover</td></tr>
+      <tr><td>Singapore</td><td>Personal Data Protection Act 2012</td><td>Notify the PDPC within 3 calendar days of assessing a notifiable breach</td><td class="hot">S$1m or 10% of annual turnover in Singapore</td></tr>
+      <tr><td>UAE</td><td>Federal Decree-Law No. 45 of 2021 (PDPL)</td><td>Notify the UAE Data Office and affected individuals without undue delay where required</td><td>Administrative fines and orders; verify current implementing rules</td></tr>
+      <tr><td>Australia</td><td>Privacy Act 1988 and Notifiable Data Breaches scheme</td><td>Assess and notify affected individuals and the OAIC as soon as practicable</td><td>Penalties can reach the greater of A$50m, 30% of turnover or 3× benefit</td></tr>
+    </tbody>
+  </table>
+
+  <div class="rule"></div>
+  <p class="kicker">Sector overlays that change the clock</p>
+  <div class="grid2" style="margin-top:2mm">
+    <div class="card"><h3>Financial services</h3><p>DORA applies to EU financial entities with ICT incident reporting obligations. RBI and SEBI add Indian incident timelines. A single incident may require multiple notifications.</p></div>
+    <div class="card"><h3>Critical infrastructure</h3><p>NIS2 and national implementations add early warnings and sector regulators. OT incidents may be reportable even when no personal data is involved.</p></div>
+    <div class="card"><h3>Telecom</h3><p>Telecom security rules add sector-specific reporting and supply-chain expectations. Vendor and network data may be in scope.</p></div>
+    <div class="card"><h3>Public companies</h3><p>SEC materiality is a board judgement made with counsel. The 8-K clock is not the same as the privacy notification clock.</p></div>
+  </div>
+
+  <div class="callout" style="margin-top:5mm">
+    <p><strong>Do not treat “no personal data” as “no obligation”.</strong> An OT outage can trigger NIS2, sector reporting, contractual notification and safety duties even when no employee or customer record was touched.</p>
+  </div>
+  <div class="footer-note"><span>Kavach · Privacy obligations</span><span>03 / 04</span></div>
+</section>
+
+<section class="page">
+  <div class="eyebrow">03 · The readiness checklist</div>
+  <h2 style="margin-top:5mm;font-size:20pt;max-width:22ch">What to fix before the clock starts.</h2>
+  <p class="lede" style="margin-top:3mm;font-size:9.4pt">
+    A short, practical checklist for the CIO, CISO, DPO and general counsel. Each item
+    should have an owner, an evidence link and a date.
+  </p>
+
+  <div class="grid2" style="margin-top:6mm">
+    <div>
+      <p class="kicker">Know the data</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Data map across SAP, HR, payroll, cloud and suppliers</li>
+        <li>Retention schedule and deletion evidence</li>
+        <li>Cross-border transfer inventory</li>
+        <li>Processor and vendor contract clauses</li>
+        <li>Records of processing and lawful basis</li>
+      </ul>
+      <p class="kicker" style="margin-top:5mm">Know the people</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Named incident commander and alternates</li>
+        <li>Legal, communications and regulator contacts</li>
+        <li>Board secretary and disclosure owner</li>
+        <li>Vendor escalation contacts</li>
+      </ul>
+    </div>
+    <div>
+      <p class="kicker">Know the clock</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Jurisdiction matrix with notification tests</li>
+        <li>72-hour / 6-hour / 4-day playbook</li>
+        <li>Pre-drafted notification templates</li>
+        <li>Evidence preservation and chain of custody</li>
+        <li>Tabletop completed in the last 12 months</li>
+      </ul>
+      <p class="kicker" style="margin-top:5mm">Know the evidence</p>
+      <ul class="checks" style="margin-top:2mm">
+        <li>Access logs and privileged session records</li>
+        <li>Data export and exfiltration telemetry</li>
+        <li>Backup and restore test results</li>
+        <li>Control metrics reported to the board</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:7mm">
+    <p><strong>The pilot.</strong> Kavach can run a privacy-and-incident readiness pilot inside the same 8–12 week engagement as the SAP/OT assessment: data map, jurisdiction matrix, notification test and board evidence pack.</p>
+  </div>
+
+  <div class="rule"></div>
+  <p class="kicker">Contact</p>
+  <p style="margin-top:2mm">Dr. Santosh K Behera · <a href="mailto:pilot@nirmanaerp.com">pilot@nirmanaerp.com</a><br>
+    Nirmana ERP, Bhubaneswar · <a href="https://kavach.nirmanaerp.com/business-case.html">kavach.nirmanaerp.com/business-case</a></p>
+  <p class="tiny muted" style="margin-top:3mm">This guide is a summary for business readers, not legal advice. Verify obligations with qualified counsel in each jurisdiction. Last reviewed 18 November 2026.</p>
+  <div class="footer-note"><span>Kavach · Privacy obligations</span><span>04 / 04</span></div>
+</section>
+
+</body>
+</html>
