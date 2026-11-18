@@ -9,9 +9,9 @@ Kavach covers SAP security and controls, OT/IT convergence, cloud and identity, 
 ## Pages
 
 - `/` — portfolio overview: SAP, OT/IT, cloud identity and incident readiness
-- `/business-case.html` — C-suite business case: IT/OT risks, incident watch, the cost of waiting, privacy obligations across the US, Europe and India
-- `/pilot.html` — customer-connect and pilot request page
-- `/privacy.html` — privacy notice for the pilot form
+- `/business-case/` — C-suite business case: IT/OT risks, incident watch, the cost of waiting, privacy obligations across the US, Europe and India
+- `/pilot/` — customer-connect and pilot request page
+- `/privacy/` — privacy notice for the pilot form
 
 ## Handouts
 
