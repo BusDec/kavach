@@ -172,16 +172,19 @@
             <code>127.0.0.1:8787</code>. It does not capture payloads, credentials or
             application data.
           </p>
-          <pre class="nw-command">sudo python3 agent/kavach_network_agent.py --interface en0</pre>
+          <pre class="nw-command">git clone https://github.com/BusDec/kavach.git
+cd kavach
+sudo python3 agent/kavach_network_agent.py --interface en0</pre>
           <p class="nw-note">
-            On macOS, <code>en0</code> is usually Wi-Fi. This captures the traffic
-            visible to that host. Capturing other devices requires a TAP, SPAN or
-            authorized monitor-mode deployment — not a browser page. Get written
-            authorization and follow your privacy obligations before capturing any
-            network.
+            On macOS, confirm the Wi-Fi interface with
+            <code>networksetup -listallhardwareports</code> (often <code>en0</code> or
+            <code>en1</code>). This captures the traffic visible to that host.
+            Capturing other devices requires a TAP, SPAN or authorized monitor-mode
+            deployment — not a browser page. Get written authorization and follow your
+            privacy obligations before capturing any network.
           </p>
           <div class="nw-links">
-            <a href="/agent/kavach_network_agent.py" download>Download the agent</a>
+            <a href="https://github.com/BusDec/kavach/tree/main/agent">Agent source</a>
             <a href="/agent/README.md">Read the agent guide</a>
             <a href="https://gearbox.nirmanaerp.com/portfolio/">Nirmana portfolio</a>
           </div>

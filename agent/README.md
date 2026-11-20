@@ -29,9 +29,10 @@ Then open:
 http://127.0.0.1:8787/
 ```
 
-On macOS, `en0` is usually Wi-Fi. The agent sees the traffic visible to that
-host. Capturing other devices requires a TAP, SPAN or an authorized
-monitor-mode deployment; a browser page cannot do that.
+On macOS, confirm the Wi-Fi interface with
+`networksetup -listallhardwareports`; it is often `en0` or `en1`. The agent sees
+the traffic visible to that host. Capturing other devices requires a TAP, SPAN
+or an authorized monitor-mode deployment; a browser page cannot do that.
 
 Options:
 
