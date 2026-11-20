@@ -14,6 +14,7 @@ Kavach covers SAP security and controls, OT/IT convergence, cloud and identity, 
 - `/privacy/` — privacy notice for the pilot form
 - `/portfolio/` — handoff to the common Nirmana ERP portfolio page
 - `/network/` — Network watch: metadata-only traffic dashboard for authorized networks
+- `/access/` — Access watch: failed sign-ins, odd hours, geographies, host access and critical assets
 
 ## Handouts
 
@@ -68,6 +69,46 @@ sudo tcpdump -i en0 -s 96 -w kavach-capture.pcap
 
 Nothing is uploaded. A synthetic file is available at
 `network/samples/kavach-sample.pcap`.
+
+### Windows packet capture
+
+Windows 10/11 and Windows Server 2019+ include `pktmon`. Run PowerShell as
+Administrator:
+
+```powershell
+pktmon start --capture --pkt-size 96 --file-name C:\temp\kavach.etl
+# reproduce the activity, then:
+pktmon stop
+pktmon etl2pcap C:\temp\kavach.etl --out C:\temp\kavach.pcapng
+```
+
+Drop `kavach.pcapng` into `/network/`. To focus on a critical host, add a filter
+before starting: `pktmon filter add -i 10.20.4.15`. Wireshark with Npcap works
+too: `dumpcap -D` lists interfaces, then
+`dumpcap -i 1 -s 96 -w C:\temp\kavach.pcapng`.
+
+`pktmon` captures the Windows machine's own stack. Capturing other machines
+requires a SPAN port, TAP or an authorized endpoint agent.
+
+## Access watch
+
+`/access/` analyzes a CSV or JSON export from Entra ID, Active Directory, SAP,
+VPN/ZTNA, Linux or a SIEM. The file is parsed locally; timestamps use the
+browser timezone. Required columns are `timestamp`, `user` and `result`; country,
+latitude/longitude, target, application, MFA and privilege columns unlock the
+other views.
+
+The page includes failed sign-ins, success after failure, impossible travel,
+off-hours access, new countries, host/application access, MFA and legacy-auth
+posture, and critical-asset hits. A synthetic file is available at
+`access/samples/kavach-access-sample.csv`.
+
+## Critical assets
+
+Both dashboards share a browser-local watchlist for exact IPs, CIDR ranges and
+wildcard hostnames. It flags matching flows and access events locally; it is
+never uploaded. The default examples are SAP, a PLC and an OT historian. Replace
+them with the client's systems from the **Critical assets** panel on either page.
 
 ## Contact
 

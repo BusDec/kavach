@@ -538,6 +538,21 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/network/pcap.js":
             self._send((ROOT / "network" / "pcap.js").read_bytes(), "text/javascript; charset=utf-8")
             return
+        if path == "/critical-assets.js":
+            self._send((ROOT / "critical-assets.js").read_bytes(), "text/javascript; charset=utf-8")
+            return
+        if path in ("/access", "/access/"):
+            self._send((ROOT / "access" / "index.html").read_bytes(), "text/html; charset=utf-8")
+            return
+        if path == "/access/app.js":
+            self._send((ROOT / "access" / "app.js").read_bytes(), "text/javascript; charset=utf-8")
+            return
+        if path == "/access/samples/kavach-access-sample.csv":
+            self._send((ROOT / "access" / "samples" / "kavach-access-sample.csv").read_bytes(), "text/csv; charset=utf-8")
+            return
+        if path == "/access/samples/README.md":
+            self._send((ROOT / "access" / "samples" / "README.md").read_bytes(), "text/plain; charset=utf-8")
+            return
         if path == "/network/samples/kavach-sample.pcap":
             self._send((ROOT / "network" / "samples" / "kavach-sample.pcap").read_bytes(), "application/vnd.tcpdump.pcap")
             return

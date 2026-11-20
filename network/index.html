@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kavach.nirmanaerp.com/network/">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20261122">
 </head>
 <body>
   <header class="site-header">
@@ -27,6 +27,7 @@
       <a href="/#cloud">Cloud &amp; identity</a>
       <a href="/#respond">Incident readiness</a>
       <a href="/network/">Network watch</a>
+      <a href="/access/">Access watch</a>
       <a href="/business-case/">Business case</a>
       <a href="/pilot/">Pilot</a>
       <a href="/portfolio/">Portfolio</a>
@@ -93,6 +94,25 @@
               networks you own or have written permission to monitor.
             </p>
           </details>
+          <details class="nw-import-help">
+            <summary>Windows capture with pktmon</summary>
+            <pre class="nw-command"># PowerShell as Administrator
+pktmon start --capture --pkt-size 96 --file-name C:\temp\kavach.etl
+pktmon stop
+pktmon etl2pcap C:\temp\kavach.etl --out C:\temp\kavach.pcapng</pre>
+            <p>
+              <code>pktmon</code> is built into Windows 10/11 and Windows Server 2019+.
+              Drop <code>kavach.pcapng</code> into the dashboard above. To focus on a
+              critical host, add a filter before capture:
+              <code>pktmon filter add -i 10.20.4.15</code>. Wireshark with Npcap also
+              works: <code>dumpcap -D</code> lists interfaces, then
+              <code>dumpcap -i 1 -s 96 -w C:\temp\kavach.pcapng</code>.
+            </p>
+            <p>
+              <code>pktmon</code> captures the Windows machine's own stack. Capturing
+              other machines requires a SPAN port, TAP or an authorized endpoint agent.
+            </p>
+          </details>
         </div>
       </div>
     </section>
@@ -104,6 +124,7 @@
         <div class="nw-kpi"><p>Active hosts</p><b id="kpi-hosts">—</b><span>seen in this view</span></div>
         <div class="nw-kpi"><p>Flows</p><b id="kpi-flows">—</b><span id="kpi-flows-note">sampled from capture</span></div>
         <div class="nw-kpi"><p>Open alerts</p><b id="kpi-alerts">—</b><span>review first</span></div>
+        <div class="nw-kpi"><p>Critical hits</p><b id="kpi-critical">—</b><span>flows touching watchlist</span></div>
       </div>
 
       <div class="nw-grid">
@@ -143,6 +164,45 @@
             <span>rules, not payload inspection</span>
           </div>
           <div class="nw-alerts" id="alerts"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="assets">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Critical assets</p>
+          <h2>Watch the systems that matter most.</h2>
+        </div>
+        <p style="color:var(--muted);font-size:11px">IPs, CIDR ranges and hostnames · stored in this browser</p>
+      </div>
+      <div class="nw-assets">
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h3>Watchlist</h3>
+            <span id="asset-count">3 watched</span>
+          </div>
+          <form class="nw-asset-form" id="asset-form">
+            <input id="asset-value" type="text" placeholder="IP, CIDR range or hostname" autocomplete="off" required>
+            <input id="asset-label" type="text" placeholder="Label (optional)" autocomplete="off">
+            <button type="submit">Add asset</button>
+          </form>
+          <p class="nw-asset-error" id="asset-error" role="status"></p>
+          <div class="nw-asset-list" id="asset-list"></div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h3>Hits in this view</h3>
+            <span id="asset-hit-count">0</span>
+          </div>
+          <div class="nw-asset-hits" id="asset-hits">
+            <p class="nw-empty">No flows touch a critical asset yet.</p>
+          </div>
+          <p class="nw-note" style="margin-top:12px;padding-left:10px;border-left:2px solid var(--warn);font-size:10px;line-height:1.6;color:var(--muted)">
+            Exact IPs, CIDR ranges and wildcard hostnames are matched locally against
+            demo, imported and live flow metadata. The watchlist never leaves this
+            browser.
+          </p>
         </div>
       </div>
     </section>
@@ -261,6 +321,7 @@ sudo python3 agent/kavach_network_agent.py --interface en0</pre>
     </div>
     <div class="footer-links">
       <a href="/network/">Network watch</a>
+      <a href="/access/">Access watch</a>
       <a href="/business-case/">Business case</a>
       <a href="/pilot/">Pilot</a>
       <a href="/privacy/">Privacy</a>
@@ -269,7 +330,8 @@ sudo python3 agent/kavach_network_agent.py --interface en0</pre>
     </div>
   </footer>
 
-  <script src="/network/pcap.js?v=20261120"></script>
-  <script src="/network/app.js?v=20261120"></script>
+  <script src="/critical-assets.js?v=20261122"></script>
+  <script src="/network/pcap.js?v=20261122"></script>
+  <script src="/network/app.js?v=20261122"></script>
 </body>
 </html>

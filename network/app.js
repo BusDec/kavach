@@ -355,6 +355,22 @@
     $("kpi-flows-note").textContent = isFile || data.mode === "live" ? "unique conversations" : "sampled from capture";
     $("kpi-alerts").textContent = (data.alerts || []).length;
 
+    const flows = data.flows || [];
+    const criticalFlows = [];
+    for (const flow of flows) {
+      const match = window.KavachAssets
+        ? window.KavachAssets.matchesAny([flow.srcIp, flow.dstIp, flow.src, flow.dst, flow.host])
+        : null;
+      if (match) {
+        flow.criticalAsset = match;
+        criticalFlows.push(flow);
+      } else {
+        delete flow.criticalAsset;
+      }
+    }
+    $("kpi-critical").textContent = criticalFlows.length.toLocaleString();
+    renderAssetHits(criticalFlows);
+
     const pause = $("pause-button");
     if (pause) {
       pause.disabled = isFile;
@@ -372,13 +388,54 @@
       ? "Parsed locally · nothing uploaded · metadata only"
       : "Metadata only · no payload or credential capture";
 
+    const criticalAlerts = [];
+    const alertKeys = new Set();
+    for (const flow of criticalFlows.slice(0, 5)) {
+      const key = `${flow.criticalAsset.value}|${flow.srcIp}|${flow.dstIp}|${flow.port}|${flow.direction}`;
+      if (alertKeys.has(key)) continue;
+      alertKeys.add(key);
+      criticalAlerts.push({
+        severity: "critical",
+        title: "Critical asset access",
+        detail: `${flow.src} → ${flow.dst} · ${flow.app} · ${flow.criticalAsset.label || flow.criticalAsset.value}`,
+        time: flow.ts,
+      });
+    }
+
     drawChart(series);
     renderProtocols(data.protocols || []);
     renderApps(data.apps || []);
-    renderAlerts(data.alerts || []);
+    renderAlerts([...criticalAlerts, ...(data.alerts || [])].slice(0, 8));
     renderHosts(data.hosts || []);
     populateFilters(data);
-    renderFlows(data.flows || []);
+    renderFlows(flows);
+  }
+
+  function renderAssetHits(flows) {
+    const el = $("asset-hits");
+    const count = $("asset-hit-count");
+    if (!el) return;
+    if (count) count.textContent = flows.length.toLocaleString();
+    if (!flows.length) {
+      el.innerHTML = '<p class="nw-empty">No flows touch a critical asset yet.</p>';
+      return;
+    }
+    const rows = [];
+    const seen = new Set();
+    for (const flow of flows) {
+      const key = `${flow.criticalAsset.value}|${flow.srcIp}|${flow.dstIp}|${flow.port}|${flow.direction}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push(flow);
+      if (rows.length >= 6) break;
+    }
+    el.innerHTML = rows.map((flow) => `<div class="nw-asset-hit">
+      <div>
+        <b>${escapeHtml(flow.criticalAsset.label || flow.criticalAsset.value)}</b>
+        <span>${escapeHtml(flow.src)} → ${escapeHtml(flow.dst)} · ${escapeHtml(flow.app)} · ${fmtTime(flow.ts)}</span>
+      </div>
+      <em>${escapeHtml(flow.direction)}</em>
+    </div>`).join("");
   }
 
   function drawChart(series) {
@@ -487,15 +544,18 @@
       body.innerHTML = '<tr><td colspan="7" class="nw-empty">Waiting for hosts…</td></tr>';
       return;
     }
-    body.innerHTML = sorted.map((h) => `<tr>
-      <td><strong>${escapeHtml(h.name || h.ip)}</strong></td>
+    body.innerHTML = sorted.map((h) => {
+      const critical = window.KavachAssets ? window.KavachAssets.matchesAny([h.ip, h.name]) : null;
+      return `<tr>
+      <td><strong>${escapeHtml(h.name || h.ip)}</strong> ${critical ? '<span class="nw-risk critical">critical</span>' : ''}</td>
       <td>${escapeHtml(h.ip || "")}</td>
       <td>${escapeHtml((h.apps || []).join(", ") || "—")}</td>
       <td class="num">${fmtBytes(h.bytesIn || 0)}</td>
       <td class="num">${fmtBytes(h.bytesOut || 0)}</td>
       <td>${fmtTime(h.lastSeen)}</td>
       <td>${riskLabel(h.risk || "low")}</td>
-    </tr>`).join("");
+    </tr>`;
+    }).join("");
   }
 
   function populateFilters(data) {
@@ -531,7 +591,7 @@
       body.innerHTML = '<tr><td colspan="10" class="nw-empty">No flows match the filters.</td></tr>';
       return;
     }
-    body.innerHTML = rows.map((flow) => `<tr>
+    body.innerHTML = rows.map((flow) => `<tr class="${flow.criticalAsset ? "critical" : ""}">
       <td title="First seen ${fmtTime(flow.firstSeen || flow.ts)}">${fmtTime(flow.ts)}</td>
       <td><strong>${escapeHtml(flow.host)}</strong></td>
       <td>${escapeHtml(flow.dst)}</td>
@@ -541,7 +601,7 @@
       <td>${escapeHtml(flow.direction)}</td>
       <td class="num">${Number(flow.packets || 1).toLocaleString()}</td>
       <td class="num">${fmtBytes(flow.bytes)}</td>
-      <td>${verdictLabel(flow.verdict)}</td>
+      <td>${flow.criticalAsset ? verdictLabel("critical") : verdictLabel(flow.verdict)}</td>
     </tr>`).join("");
   }
 
@@ -551,6 +611,7 @@
     if (verdict === "review") return '<span class="nw-risk high">review</span>';
     if (verdict === "watch") return '<span class="nw-risk medium">watch</span>';
     if (verdict === "transit") return '<span class="nw-risk info">transit</span>';
+    if (verdict === "critical") return '<span class="nw-risk critical">critical asset</span>';
     return '<span class="nw-risk low">normal</span>';
   }
 
@@ -763,6 +824,13 @@
     window.addEventListener("resize", () => { if (state.data) drawChart(state.data.series || []); });
 
     wireImport();
+    if (window.KavachAssets) {
+      window.KavachAssets.bindUI({
+        onChange: () => {
+          if (state.data) render(state.data);
+        },
+      });
+    }
     tryLive();
   }
 

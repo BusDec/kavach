@@ -59,6 +59,56 @@ sudo tcpdump -i en0 -s 96 -w kavach-capture.pcap
 
 Stop with `Ctrl-C`, then drop the file into `/network/`.
 
+## Windows packet capture
+
+The Python agent uses `tcpdump`, which is not the normal Windows capture path.
+Use the built-in `pktmon` instead, in an Administrator PowerShell:
+
+```powershell
+pktmon start --capture --pkt-size 96 --file-name C:\temp\kavach.etl
+# reproduce the activity, then:
+pktmon stop
+pktmon etl2pcap C:\temp\kavach.etl --out C:\temp\kavach.pcapng
+```
+
+Drop `kavach.pcapng` into `/network/`. To restrict the capture, add a filter
+before starting:
+
+```powershell
+pktmon filter add -i 10.20.4.15
+pktmon filter add -p 443
+```
+
+`pktmon filter remove` clears filters. `pktmon` works on Windows 10/11 and
+Windows Server 2019+. For a Wireshark/Npcap install, use
+`dumpcap -D` to list interfaces and then
+`dumpcap -i 1 -s 96 -w C:\temp\kavach.pcapng`.
+
+A Windows capture sees only that machine's networking stack. For another
+machine, run the capture on that endpoint, use a SPAN/TAP, or deploy an
+authorized agent. The browser importer supports the resulting pcapng file.
+
+To collect from several Windows endpoints with PowerShell Remoting:
+
+```powershell
+$hosts = @("WIN01", "WIN02")
+Invoke-Command -ComputerName $hosts -ScriptBlock {
+  $etl  = "$env:WINDIR\Temp\kavach.etl"
+  $pcap = "$env:WINDIR\Temp\kavach.pcapng"
+  pktmon start --capture --pkt-size 96 --file-name $etl
+  Start-Sleep -Seconds 300
+  pktmon stop
+  pktmon etl2pcap $etl --out $pcap
+}
+foreach ($hostName in $hosts) {
+  Copy-Item "\\$hostName\C$\Windows\Temp\kavach.pcapng" ".\$hostName.pcapng"
+}
+```
+
+Use an account with the required WinRM and local administrator rights, and
+capture only hosts you are authorized to monitor. Adjust the duration and
+`pktmon filter` to keep the capture small.
+
 ## What it classifies
 
 - Direction: inbound, outbound or transit, relative to the local interface
@@ -76,6 +126,9 @@ Stop with `Ctrl-C`, then drop the file into `/network/`.
 - A switched Wi-Fi network does not deliver other clients' unicast traffic to
   this host. Use an authorized sensor, TAP or SPAN for network-wide visibility.
 - The agent stores flows in memory only; restarting clears the view.
+- The critical-asset watchlist is browser-local. It flags live metadata while
+  the dashboard is open, but the agent does not persist the list or send alerts
+  when no dashboard is connected.
 - Do not run it on a network you do not own or have explicit permission to
   monitor. Follow the privacy rules that apply to you (for example DPDP, GDPR
   or US state law).

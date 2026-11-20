@@ -1,0 +1,37 @@
+timestamp,user,source_ip,country,city,lat,lon,asn,target_host,target_ip,application,auth_method,result,reason,mfa,privilege
+2026-03-12 09:10:00,anita.rao,49.207.18.24,India,Bengaluru,12.97,77.59,AS24560,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,,satisfied,user
+2026-03-12 09:25:00,rohit.mehta,49.207.22.81,India,Mumbai,19.07,72.87,AS24560,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-12 09:40:00,meera.iyer,10.20.4.50,India,Bengaluru,12.97,77.59,AS64512,hr-portal,10.20.4.60,HR portal,"Password, MFA",success,,satisfied,user
+2026-03-12 10:05:00,santosh.k,203.0.113.20,Singapore,Singapore,1.35,103.82,AS64500,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,admin
+2026-03-12 10:20:00,arjun.s,10.20.4.71,India,Bengaluru,12.97,77.59,AS64512,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,,satisfied,user
+2026-03-12 10:45:00,priya.n,10.20.4.62,India,Bengaluru,12.97,77.59,AS64512,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-12 11:00:00,vendor.john,203.0.113.55,Netherlands,Amsterdam,52.37,4.9,AS64510,plc-line-2,10.30.7.40,Engineering console,"Password, MFA",success,,satisfied,vendor
+2026-03-12 11:15:00,svc.backup,10.20.4.90,India,Bengaluru,12.97,77.59,AS64512,outlook.office365.com,52.96.14.18,Microsoft 365,IMAP Legacy,success,Service account,not supported,service
+2026-03-12 12:00:00,anita.rao,49.207.18.24,India,Bengaluru,12.97,77.59,AS24560,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,,satisfied,user
+2026-03-12 12:20:00,rohit.mehta,49.207.22.81,India,Mumbai,19.07,72.87,AS24560,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-12 13:05:00,meera.iyer,10.20.4.50,India,Bengaluru,12.97,77.59,AS64512,hr-portal,10.20.4.60,HR portal,"Password, MFA",success,,satisfied,user
+2026-03-12 14:10:00,arjun.s,10.20.4.71,India,Bengaluru,12.97,77.59,AS64512,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,,satisfied,user
+2026-03-13 09:30:00,arjun.s,198.51.100.23,UK,London,51.51,-0.13,AS64520,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,New country,satisfied,user
+2026-03-12 15:00:00,priya.n,10.20.4.62,India,Bengaluru,12.97,77.59,AS64512,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-12 15:20:00,santosh.k,203.0.113.20,Singapore,Singapore,1.35,103.82,AS64500,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,admin
+2026-03-12 16:00:00,anita.rao,49.207.18.24,India,Bengaluru,12.97,77.59,AS24560,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,,satisfied,user
+2026-03-12 16:20:00,rohit.mehta,49.207.22.81,India,Mumbai,19.07,72.87,AS24560,sap-s4-prod,10.20.4.15,SAP S/4HANA,Password,failure,Invalid password,not prompted,user
+2026-03-12 16:22:00,rohit.mehta,49.207.22.81,India,Mumbai,19.07,72.87,AS24560,sap-s4-prod,10.20.4.15,SAP S/4HANA,Password,failure,Invalid password,not prompted,user
+2026-03-12 16:25:00,rohit.mehta,49.207.22.81,India,Mumbai,19.07,72.87,AS24560,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-12 17:00:00,meera.iyer,10.20.4.50,India,Bengaluru,12.97,77.59,AS64512,hr-portal,10.20.4.60,HR portal,"Password, MFA",failure,"MFA denied, user rejected push",denied,user
+2026-03-12 17:03:00,meera.iyer,10.20.4.50,India,Bengaluru,12.97,77.59,AS64512,hr-portal,10.20.4.60,HR portal,"Password, MFA",failure,"MFA denied, user rejected push",denied,user
+2026-03-12 17:08:00,meera.iyer,10.20.4.50,India,Bengaluru,12.97,77.59,AS64512,hr-portal,10.20.4.60,HR portal,"Password, MFA",success,,satisfied,user
+2026-03-12 18:10:00,priya.n,10.20.4.62,India,Bengaluru,12.97,77.59,AS64512,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-12 19:15:00,arjun.s,10.20.4.71,India,Bengaluru,12.97,77.59,AS64512,historian,10.30.7.50,OT historian,"Password, MFA",success,Maintenance window,satisfied,user
+2026-03-13 02:05:00,anita.rao,203.0.113.77,Netherlands,Amsterdam,52.37,4.9,AS64510,outlook.office365.com,52.96.14.18,Microsoft 365,Password,failure,Invalid password,not prompted,user
+2026-03-13 02:06:00,rohit.mehta,203.0.113.77,Netherlands,Amsterdam,52.37,4.9,AS64510,outlook.office365.com,52.96.14.18,Microsoft 365,Password,failure,Invalid password,not prompted,user
+2026-03-13 02:07:00,meera.iyer,203.0.113.77,Netherlands,Amsterdam,52.37,4.9,AS64510,outlook.office365.com,52.96.14.18,Microsoft 365,Password,failure,Invalid password,not prompted,user
+2026-03-13 02:08:00,arjun.s,203.0.113.77,Netherlands,Amsterdam,52.37,4.9,AS64510,outlook.office365.com,52.96.14.18,Microsoft 365,Password,failure,Invalid password,not prompted,user
+2026-03-13 02:09:00,priya.n,203.0.113.77,Netherlands,Amsterdam,52.37,4.9,AS64510,outlook.office365.com,52.96.14.18,Microsoft 365,Password,failure,Invalid password,not prompted,user
+2026-03-13 02:010:00,svc.backup,203.0.113.77,Netherlands,Amsterdam,52.37,4.9,AS64510,outlook.office365.com,52.96.14.18,Microsoft 365,Password,failure,Invalid password,not prompted,user
+2026-03-13 02:20:00,priya.n,10.20.4.62,India,Bengaluru,12.97,77.59,AS64512,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,,satisfied,user
+2026-03-13 02:45:00,priya.n,198.51.100.44,US,New York,40.71,-74.01,AS64530,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,Impossible travel,satisfied,user
+2026-03-13 03:10:00,santosh.k,203.0.113.20,Singapore,Singapore,1.35,103.82,AS64500,sap-s4-prod,10.20.4.15,SAP S/4HANA,"Password, MFA",success,Privileged sign-in,satisfied,admin
+2026-03-13 03:35:00,vendor.john,203.0.113.55,Netherlands,Amsterdam,52.37,4.9,AS64510,plc-line-2,10.30.7.40,Engineering console,Password,success,Vendor remote session,satisfied,vendor
+2026-03-13 09:05:00,anita.rao,49.207.18.24,India,Bengaluru,12.97,77.59,AS24560,outlook.office365.com,52.96.14.18,Microsoft 365,"Password, MFA",success,,satisfied,user
+2026-03-13 09:20:00,meera.iyer,10.20.4.50,India,Bengaluru,12.97,77.59,AS64512,hr-portal,10.20.4.60,HR portal,"Password, MFA",success,,satisfied,user

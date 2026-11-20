@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Access watch · Kavach</title>
+  <meta name="description" content="Identity and access watch for authorized security teams: failed sign-ins, odd hours, new geographies, host access and critical assets, analyzed locally.">
+  <meta property="og:title" content="Access watch · Kavach">
+  <meta property="og:description" content="Who is getting in, and what are they reaching? Failed sign-ins, impossible travel, odd hours, host access and critical assets.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kavach.nirmanaerp.com/access/">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=20261122">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark"></span>
+      <span class="brand-lockup">
+        <span class="brand-parent">Nirmana</span>
+        <span class="brand-name">Kavach</span>
+      </span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/#sap">SAP security</a>
+      <a href="/#ot">OT / IT</a>
+      <a href="/#cloud">Cloud &amp; identity</a>
+      <a href="/#respond">Incident readiness</a>
+      <a href="/network/">Network watch</a>
+      <a href="/access/">Access watch</a>
+      <a href="/business-case/">Business case</a>
+      <a href="/pilot/">Pilot</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="https://nirmanaerp.com/">Nirmana ERP</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="crumbs"><a href="/">Kavach</a><span>/</span><span>Access watch</span></div>
+
+    <section class="page-hero">
+      <p class="eyebrow">Access watch · identity &amp; access metadata</p>
+      <h1 class="page-title">Who is getting in, and what are they reaching?</h1>
+      <p class="page-lede">
+        Failed sign-ins, odd hours, new geographies, host access and
+        <strong>critical assets</strong>. The public page runs a synthetic feed;
+        drop a CSV or JSON export to analyze it locally. No raw credentials and
+        nothing uploaded.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="#analyze">Analyze access logs</a>
+        <a class="button secondary" href="#events">View the events</a>
+      </div>
+      <div class="nw-status">
+        <span class="nw-pill demo" id="source-pill"><span class="dot"></span><span id="source-label">Synthetic logs</span></span>
+        <span class="nw-pill" id="access-window">Last 24 hours</span>
+        <span class="nw-pill" id="updated-pill">Updated · just now</span>
+        <span class="nw-pill" id="privacy-pill">Local analysis · no raw credentials</span>
+      </div>
+    </section>
+
+    <section class="section" id="analyze">
+      <div class="nw-import" id="drop-zone">
+        <div class="nw-import-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </div>
+        <div class="nw-import-body">
+          <p class="eyebrow">Past access export · parsed on this device</p>
+          <h2>Already have sign-in logs? Drop them here.</h2>
+          <p>
+            Analyze a <code>.csv</code> or <code>.json</code> export from Entra ID,
+            Active Directory, SAP, VPN/ZTNA, Linux or your SIEM. The file is read in
+            this browser tab and <strong>never uploaded</strong>. Timestamps are
+            interpreted in your local timezone.
+          </p>
+          <div class="actions nw-import-actions">
+            <button class="button primary" id="access-choose" type="button">Choose an export</button>
+            <button class="button secondary" id="access-sample" type="button">Try a synthetic sample</button>
+            <button class="button secondary" id="reset-source" type="button" hidden>Back to demo</button>
+          </div>
+          <input id="access-file" type="file" accept=".csv,.json,text/csv,application/json" hidden>
+          <p class="nw-import-status" id="access-status" role="status">No file selected. Nothing leaves this device.</p>
+          <details class="nw-import-help">
+            <summary>Expected columns</summary>
+            <div class="aw-schema"><b>timestamp,user,source_ip,country,city,lat,lon,asn,target_host,target_ip,application,auth_method,result,reason,mfa,privilege</b></div>
+            <p>
+              Only <code>timestamp</code>, <code>user</code> and <code>result</code>
+              are required. Country, city and latitude/longitude unlock the geography
+              and impossible-travel views. JSON can be an array of objects, or an
+              object with an <code>events</code> or <code>value</code> array.
+              <a href="/access/samples/kavach-access-sample.csv" download>Download a CSV template</a>.
+            </p>
+          </details>
+          <details class="nw-import-help">
+            <summary>Windows Security events</summary>
+            <p>
+              Raw <code>.evtx</code> is not parsed in the browser. Export 4624/4625
+              events through your SIEM or convert them to the CSV shape above. Keep
+              the original export on the authorized host; only the derived CSV needs
+              to be opened here.
+            </p>
+            <pre class="nw-command">wevtutil epl Security C:\temp\security.evtx
+# parse / enrich with your SIEM, then export the CSV columns above</pre>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="nw-kpis">
+        <div class="nw-kpi"><p>Failed sign-ins</p><b id="kpi-failed">—</b><span>selected window</span></div>
+        <div class="nw-kpi"><p>Accounts targeted</p><b id="kpi-targets">—</b><span>distinct users</span></div>
+        <div class="nw-kpi"><p>Success after failure</p><b id="kpi-saf">—</b><span>within 30 minutes</span></div>
+        <div class="nw-kpi"><p>Impossible travel</p><b id="kpi-travel">—</b><span>unlikely speed</span></div>
+        <div class="nw-kpi"><p>Off-hours sessions</p><b id="kpi-offhours">—</b><span>outside 08:00–19:00</span></div>
+        <div class="nw-kpi"><p>Critical hits</p><b id="kpi-critical">—</b><span>watchlist matches</span></div>
+      </div>
+
+      <div class="nw-grid">
+        <div class="nw-panel aw-chart-panel">
+          <div class="nw-panel-head">
+            <h2 id="chart-title">Sign-ins · last 24 hours</h2>
+            <span id="chart-range">success / failure</span>
+          </div>
+          <canvas class="nw-chart aw-chart" id="access-chart" aria-label="Successful and failed sign-ins over time"></canvas>
+          <div class="nw-legend">
+            <span><i style="background:var(--good)"></i>Success</span>
+            <span><i style="background:var(--bad)"></i>Failure</span>
+          </div>
+        </div>
+
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>What needs review</h2>
+            <span>rules, not full log review</span>
+          </div>
+          <div class="nw-alerts" id="access-alerts"></div>
+        </div>
+      </div>
+
+      <div class="nw-grid two">
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>Top targeted users</h2>
+            <span>failed attempts first</span>
+          </div>
+          <div class="aw-rows" id="top-users"></div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>Geographies</h2>
+            <span>by event count</span>
+          </div>
+          <div class="aw-rows" id="top-geo"></div>
+        </div>
+      </div>
+
+      <div class="nw-grid two">
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>Applications and hosts</h2>
+            <span>critical assets marked</span>
+          </div>
+          <div class="aw-rows" id="top-targets"></div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>When access happens</h2>
+            <span>24-hour heat strip</span>
+          </div>
+          <div class="aw-heat" id="hour-heat"></div>
+          <div class="aw-heat-labels"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+          <div class="aw-posture">
+            <div><span>Success rate</span><b id="posture-success-rate">—</b></div>
+            <div><span>MFA denials</span><b id="posture-mfa">—</b></div>
+            <div><span>Legacy auth</span><b id="posture-legacy">—</b></div>
+            <div><span>Privileged users</span><b id="posture-privileged">—</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="assets">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Critical assets</p>
+          <h2>Watch the systems that matter most.</h2>
+        </div>
+        <p style="color:var(--muted);font-size:11px">IPs, CIDR ranges and hostnames · stored in this browser</p>
+      </div>
+      <div class="nw-assets">
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h3>Watchlist</h3>
+            <span id="asset-count">3 watched</span>
+          </div>
+          <form class="nw-asset-form" id="asset-form">
+            <input id="asset-value" type="text" placeholder="IP, CIDR range or hostname" autocomplete="off" required>
+            <input id="asset-label" type="text" placeholder="Label (optional)" autocomplete="off">
+            <button type="submit">Add asset</button>
+          </form>
+          <p class="nw-asset-error" id="asset-error" role="status"></p>
+          <div class="nw-asset-list" id="asset-list"></div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h3>Hits in this view</h3>
+            <span id="asset-hit-count">0</span>
+          </div>
+          <div class="nw-asset-hits" id="asset-hits">
+            <p class="nw-empty">No access events touch a critical asset yet.</p>
+          </div>
+          <p class="nw-note" style="margin-top:12px;padding-left:10px;border-left:2px solid var(--warn);font-size:10px;line-height:1.6;color:var(--muted)">
+            Exact IPs, CIDR ranges and wildcard hostnames are matched locally against
+            the target host and target IP. The watchlist is shared with Network watch
+            in this browser and never sent to a server.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="events">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Events</p>
+          <h2>Every sign-in has a story.</h2>
+        </div>
+        <p id="events-note" style="color:var(--muted);font-size:11px">Synthetic demo · no raw credentials</p>
+      </div>
+
+      <div class="nw-filters">
+        <label for="filter-search">Search</label>
+        <input id="filter-search" type="search" placeholder="User, host or IP">
+        <label for="filter-result">Result</label>
+        <select id="filter-result">
+          <option value="all">All</option>
+          <option value="success">Success</option>
+          <option value="failure">Failure</option>
+        </select>
+        <label for="filter-country">Country</label>
+        <select id="filter-country"><option value="all">All</option></select>
+        <label for="filter-app">Application</label>
+        <select id="filter-app"><option value="all">All</option></select>
+        <label for="filter-risk">Risk</label>
+        <select id="filter-risk">
+          <option value="all">All</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <button class="nw-btn" id="clear-filters" type="button">Clear filters</button>
+      </div>
+
+      <div class="nw-table-wrap">
+        <table class="nw-table aw-table">
+          <thead>
+            <tr><th>Time</th><th>User</th><th>Source</th><th>Country / ASN</th><th>Target</th><th>Application</th><th>Auth</th><th>Result</th><th>Risk / verdict</th></tr>
+          </thead>
+          <tbody id="events-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <span class="brand-parent">Nirmana ERP</span>
+      <span class="footer-name">Kavach · Cybersecurity</span>
+    </div>
+    <div class="footer-links">
+      <a href="/network/">Network watch</a>
+      <a href="/access/">Access watch</a>
+      <a href="/business-case/">Business case</a>
+      <a href="/pilot/">Pilot</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="https://nirmanaerp.com/">Parent portal</a>
+    </div>
+  </footer>
+
+  <script src="/critical-assets.js?v=20261122"></script>
+  <script src="/access/app.js?v=20261122"></script>
+</body>
+</html>
