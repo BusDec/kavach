@@ -131,6 +131,21 @@ python3 agent/kavach_sensor_hub.py \
 Open `http://127.0.0.1:8789/`. See `agent/README.md` for the adapters, ingest
 API and triage rules.
 
+The hub includes a read-only **Inventory** section for software and patch
+posture: installed applications and packages, installed updates, available
+updates, baseline patch gaps, outdated software and critical-asset risk. A
+local collector feeds it:
+
+```bash
+python3 agent/kavach_inventory_agent.py --hub http://127.0.0.1:8789
+```
+
+It reads Windows registry and hotfix data, macOS applications and Homebrew, or
+Linux `dpkg`/`rpm`/`apk` packages. It never installs, removes or exploits
+anything, and it avoids `Win32_Product`. Pass a baseline with
+`--patch-baseline agent/patch-baseline.example.json` to compare against approved
+minimum versions and required patch IDs.
+
 ## Contact
 
 Dr. Santosh K Behera · [pilot@nirmanaerp.com](mailto:pilot@nirmanaerp.com)

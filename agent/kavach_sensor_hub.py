@@ -19,6 +19,8 @@ Open http://127.0.0.1:8789/
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import ipaddress
 import json
 import os
@@ -192,6 +194,308 @@ class Assets:
         return None
 
 
+
+
+def version_key(value: str) -> tuple:
+    parts = re.findall(r"\d+|[a-zA-Z]+", str(value or "").lower())
+    key = []
+    for part in parts:
+        key.append((0, int(part)) if part.isdigit() else (1, part))
+    return tuple(key)
+
+
+def version_less(current: str, minimum: str) -> bool:
+    if not current or not minimum:
+        return False
+    return version_key(current) < version_key(minimum)
+
+
+def version_text(value) -> str:
+    return str(value or "").strip()
+
+
+class Baseline:
+    def __init__(self, data: dict | None = None, use_defaults: bool = False) -> None:
+        data = data or {}
+        if use_defaults and not data:
+            data = {
+                "software": [
+                    {"name": "7-Zip", "minimum_version": "24.09"},
+                    {"name": "Google Chrome", "minimum_version": "132.0"},
+                    {"name": "OpenSSL", "minimum_version": "3.0.16"},
+                    {"name": "Java", "minimum_version": "17.0.12"},
+                    {"name": "SAP GUI", "minimum_version": "7.70"},
+                ],
+                "required_patches": {"windows": ["KB5049981", "KB5051987"]},
+                "minimum_build": {"windows": "19045.5487", "macos": "15.3", "linux": ""},
+            }
+        self.software = [row for row in data.get("software", []) if isinstance(row, dict) and row.get("name")]
+        raw_patches = data.get("required_patches", {})
+        if isinstance(raw_patches, list):
+            self.required_patches = {"*": [str(value).strip() for value in raw_patches if str(value).strip()]}
+        else:
+            self.required_patches = {
+                str(key).lower(): [str(value).strip() for value in values if str(value).strip()]
+                for key, values in raw_patches.items()
+                if isinstance(values, list)
+            }
+        self.minimum_build = {str(key).lower(): str(value).strip() for key, value in data.get("minimum_build", {}).items() if str(value).strip()}
+
+    @classmethod
+    def from_file(cls, path: str | None, use_defaults: bool = False) -> "Baseline":
+        if not path:
+            return cls(use_defaults=use_defaults)
+        try:
+            data = json.loads(Path(path).read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"patch baseline could not be read: {exc}", file=sys.stderr)
+            return cls(use_defaults=use_defaults)
+        return cls(data if isinstance(data, dict) else {}, use_defaults=use_defaults)
+
+    def software_for(self, name: str) -> dict | None:
+        needle = str(name or "").strip().lower()
+        if not needle:
+            return None
+        for row in self.software:
+            target = str(row.get("name", "")).strip().lower()
+            if not target:
+                continue
+            if needle == target:
+                return row
+            if re.search(r"(^|[^a-z0-9])" + re.escape(target) + r"([^a-z0-9]|$)", needle):
+                return row
+        return None
+
+    def patches_for(self, family: str) -> list[str]:
+        family = str(family or "").lower()
+        return list(self.required_patches.get(family, [])) + list(self.required_patches.get("*", []))
+
+    def apply(self, host: dict) -> dict:
+        software = []
+        outdated = 0
+        for item in host.get("software", []):
+            row = dict(item)
+            name = str(row.get("name") or "").strip()
+            current = version_text(row.get("version"))
+            latest = version_text(row.get("latest"))
+            baseline = self.software_for(name)
+            baseline_min = version_text(baseline.get("minimum_version")) if baseline else ""
+            update_source = ""
+            status = "unknown"
+            if current and baseline_min and version_less(current, baseline_min):
+                status = "outdated"
+                update_source = "baseline"
+            elif current and latest and version_less(current, latest):
+                status = "outdated"
+                update_source = row.get("latest_source") or "package-manager"
+            elif current:
+                status = "current"
+            row["name"] = name
+            row["version"] = current
+            row["latest"] = latest
+            row["baseline_min"] = baseline_min
+            row["status"] = status
+            row["update_source"] = update_source
+            software.append(row)
+            if status == "outdated":
+                outdated += 1
+
+        patches = host.get("patches") or {}
+        installed = [dict(row) for row in patches.get("installed", []) if isinstance(row, dict)]
+        available = [dict(row) for row in patches.get("available", []) if isinstance(row, dict)]
+        missing = [dict(row) for row in patches.get("missing", []) if isinstance(row, dict)]
+        installed_ids = {str(row.get("id") or "").lower() for row in installed}
+        for patch in self.patches_for(host.get("os_family", "")):
+            if patch.lower() not in installed_ids:
+                missing.append({
+                    "id": patch,
+                    "title": "Required baseline patch",
+                    "severity": "required",
+                    "source": "baseline",
+                })
+        missing_ids = set()
+        unique_missing = []
+        for row in missing:
+            key = str(row.get("id") or row.get("title") or "").lower()
+            if not key or key in missing_ids:
+                continue
+            missing_ids.add(key)
+            unique_missing.append(row)
+
+        family = str(host.get("os_family") or "").lower()
+        minimum_build = self.minimum_build.get(family, "")
+        build_outdated = bool(minimum_build and host.get("os_version") and version_less(str(host.get("os_version")), minimum_build))
+        known_version = any(row.get("status") == "current" for row in software)
+        risk = "low"
+        if host.get("critical_asset") and (outdated or unique_missing or build_outdated):
+            risk = "high"
+        elif unique_missing or build_outdated:
+            risk = "medium" if len(unique_missing) < 3 else "high"
+        elif outdated or host.get("reboot_pending"):
+            risk = "medium"
+
+        host["software"] = software
+        host["patches"] = {"installed": installed, "available": available, "missing": unique_missing}
+        host["outdated_count"] = outdated
+        host["missing_patch_count"] = len(unique_missing)
+        host["build_outdated"] = build_outdated
+        host["minimum_build"] = minimum_build
+        host["risk"] = risk
+        host["known_version"] = known_version
+        host["gap_count"] = outdated + len(unique_missing) + (1 if build_outdated else 0)
+        return host
+
+
+class InventoryStore:
+    def __init__(self, baseline: Baseline, assets: Assets) -> None:
+        self.baseline = baseline
+        self.assets = assets
+        self.hosts: dict[str, dict] = {}
+
+    def upsert(self, raw: dict) -> dict:
+        host = dict(raw or {})
+        hostname = str(host.get("hostname") or host.get("id") or "unknown").strip()
+        host_id = slug(host.get("id") or hostname) or "unknown"
+        ip_addresses = host.get("ip_addresses") or []
+        if isinstance(ip_addresses, str):
+            ip_addresses = [ip_addresses]
+        ip_addresses = [str(value) for value in ip_addresses if value]
+        asset = None
+        for address in ip_addresses:
+            asset = self.assets.match({"host": hostname, "src_ip": address, "dst_ip": ""})
+            if asset:
+                break
+        if not asset:
+            asset = self.assets.match({"host": hostname})
+        previous = self.hosts.get(host_id, {})
+        host.update({
+            "id": host_id,
+            "hostname": hostname,
+            "ip_addresses": ip_addresses,
+            "critical_asset": bool(host.get("critical_asset")) or bool(asset),
+            "critical_label": str(host.get("critical_label") or (asset.get("label") if asset else "")),
+            "software": host.get("software") or [],
+            "patches": host.get("patches") or {},
+            "notes": host.get("notes") or [],
+            "last_scan": parse_ts(host.get("last_scan")) or now(),
+            "scan_count": int(previous.get("scan_count", 0)) + 1,
+        })
+        host = self.baseline.apply(host)
+        self.hosts[host_id] = host
+        return host
+
+    def host_rows(self) -> list[dict]:
+        rows = []
+        for host in self.hosts.values():
+            rows.append({
+                "id": host["id"],
+                "hostname": host["hostname"],
+                "os_family": host.get("os_family", ""),
+                "os_name": host.get("os_name", ""),
+                "os_version": host.get("os_version", ""),
+                "kernel": host.get("kernel", ""),
+                "last_scan": host.get("last_scan", 0),
+                "software_count": len(host.get("software", [])),
+                "outdated_count": host.get("outdated_count", 0),
+                "missing_patch_count": host.get("missing_patch_count", 0),
+                "available_count": len(host.get("patches", {}).get("available", [])),
+                "build_outdated": host.get("build_outdated", False),
+                "reboot_pending": host.get("reboot_pending", False),
+                "critical_asset": host.get("critical_asset", False),
+                "critical_label": host.get("critical_label", ""),
+                "risk": host.get("risk", "low"),
+                "gap_count": host.get("gap_count", 0),
+            })
+        rows.sort(key=lambda row: (row["critical_asset"], row["gap_count"], row["last_scan"]), reverse=True)
+        return rows
+
+    def summary(self) -> dict:
+        hosts = list(self.hosts.values())
+        os_counts = Counter(host.get("os_family") or "Unknown" for host in hosts)
+        return {
+            "hosts": len(hosts),
+            "software": sum(len(host.get("software", [])) for host in hosts),
+            "outdated": sum(host.get("outdated_count", 0) for host in hosts),
+            "missingPatches": sum(host.get("missing_patch_count", 0) for host in hosts),
+            "availableUpdates": sum(len(host.get("patches", {}).get("available", [])) for host in hosts),
+            "criticalHosts": sum(1 for host in hosts if host.get("critical_asset")),
+            "criticalGaps": sum(1 for host in hosts if host.get("critical_asset") and host.get("gap_count", 0)),
+            "rebootPending": sum(1 for host in hosts if host.get("reboot_pending")),
+            "buildOutdated": sum(1 for host in hosts if host.get("build_outdated")),
+            "lastScan": max((host.get("last_scan", 0) for host in hosts), default=0),
+            "os": [{"name": name, "count": count} for name, count in os_counts.most_common()],
+            "baseline": {
+                "software": len(self.baseline.software),
+                "requiredPatches": sum(len(values) for values in self.baseline.required_patches.values()),
+                "minimumBuild": self.baseline.minimum_build,
+            },
+        }
+
+    def software(self, query: str = "") -> list[dict]:
+        needle = str(query or "").strip().lower()
+        rows = []
+        for host in self.hosts.values():
+            for item in host.get("software", []):
+                haystack = " ".join([
+                    str(item.get("name", "")), str(item.get("vendor", "")),
+                    str(item.get("version", "")), host.get("hostname", ""),
+                ]).lower()
+                if needle and needle not in haystack:
+                    continue
+                rows.append({
+                    "host": host["id"],
+                    "hostname": host.get("hostname", ""),
+                    "os": host.get("os_name", ""),
+                    "name": item.get("name", ""),
+                    "vendor": item.get("vendor", ""),
+                    "version": item.get("version", ""),
+                    "latest": item.get("latest", ""),
+                    "baseline_min": item.get("baseline_min", ""),
+                    "status": item.get("status", "unknown"),
+                    "source": item.get("source", ""),
+                    "update_source": item.get("update_source", ""),
+                })
+        rows.sort(key=lambda row: (row["status"] != "outdated", row["name"].lower(), row["hostname"]))
+        return rows[:500]
+
+    def patch_gaps(self) -> list[dict]:
+        rows = []
+        for host in self.hosts.values():
+            if not host.get("missing_patch_count") and not host.get("build_outdated"):
+                continue
+            rows.append({
+                "host": host["id"],
+                "hostname": host.get("hostname", ""),
+                "os": host.get("os_name", ""),
+                "os_version": host.get("os_version", ""),
+                "minimum_build": host.get("minimum_build", ""),
+                "build_outdated": host.get("build_outdated", False),
+                "missing": host.get("patches", {}).get("missing", []),
+                "available": host.get("patches", {}).get("available", []),
+                "reboot_pending": host.get("reboot_pending", False),
+                "critical_asset": host.get("critical_asset", False),
+                "risk": host.get("risk", "low"),
+            })
+        rows.sort(key=lambda row: (row["critical_asset"], row["risk"] == "high", len(row["missing"])), reverse=True)
+        return rows
+
+    def csv_text(self) -> str:
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["host", "hostname", "os", "os_version", "software", "vendor", "version", "latest", "baseline_min", "status", "source", "critical_asset", "missing_patches", "reboot_pending", "last_scan"])
+        for host in self.hosts.values():
+            missing = ", ".join(str(row.get("id", "")) for row in host.get("patches", {}).get("missing", []))
+            for item in host.get("software", []):
+                writer.writerow([
+                    host["id"], host.get("hostname", ""), host.get("os_name", ""),
+                    host.get("os_version", ""), item.get("name", ""), item.get("vendor", ""),
+                    item.get("version", ""), item.get("latest", ""), item.get("baseline_min", ""),
+                    item.get("status", ""), item.get("source", ""), host.get("critical_asset", False),
+                    missing, host.get("reboot_pending", False), iso_utc(host.get("last_scan", 0)),
+                ])
+        return output.getvalue()
+
+
 class Graph:
     def __init__(self) -> None:
         self.nodes: dict[str, dict] = {}
@@ -322,8 +626,10 @@ def normalize_event(raw: dict, sensor: str) -> dict:
 
 
 class Hub:
-    def __init__(self, assets: Assets, archive: str | None = None) -> None:
+    def __init__(self, assets: Assets, archive: str | None = None, baseline: Baseline | None = None) -> None:
         self.assets = assets
+        self.baseline = baseline or Baseline([])
+        self.inventory = InventoryStore(self.baseline, self.assets)
         self.graph = Graph()
         self.events: deque[dict] = deque(maxlen=EVENT_LIMIT)
         self.cases: dict[str, dict] = {}
@@ -643,6 +949,7 @@ class Hub:
                 ],
                 "entities": self.graph.top_nodes(16),
                 "criticalAssets": self.assets.list(),
+                "inventory": self.inventory.summary(),
             }
 
     def search_entities(self, query: str = "", kind: str = "", limit: int = 20) -> list[dict]:
@@ -993,9 +1300,142 @@ class WazuhSensor(Sensor):
             self.stop_event.wait(2)
 
 
+
+
+def seed_inventory_demo(store: InventoryStore) -> None:
+    stamp = now()
+
+    def software(name, version, vendor="", source="", latest="", latest_source=""):
+        return {
+            "name": name, "version": version, "vendor": vendor, "source": source,
+            "latest": latest, "latest_source": latest_source,
+        }
+
+    def patch(patch_id, title, installed_on="", severity="", source=""):
+        return {
+            "id": patch_id, "title": title, "installed_on": installed_on,
+            "severity": severity, "source": source,
+        }
+
+    hosts = [
+        {
+            "id": "ws-priya", "hostname": "WS-PRIYA",
+            "os_family": "windows", "os_name": "Windows 11 Pro", "os_version": "22631.4890",
+            "kernel": "10.0.22631", "arch": "AMD64", "cpu": "Intel Core i7-1265U",
+            "memory_bytes": 32 * 1024 ** 3, "disk_total": 512 * 1024 ** 3,
+            "disk_used": 310 * 1024 ** 3, "ip_addresses": ["10.20.4.62"],
+            "last_scan": stamp - 900, "reboot_pending": True, "scan_count": 4,
+            "notes": ["Patch baseline applied", "Windows Update checked"],
+            "software": [
+                software("7-Zip", "23.01", "Igor Pavlov", "Registry", "24.09", "winget"),
+                software("Google Chrome", "131.0.6778", "Google", "Registry", "132.0.6834", "winget"),
+                software("OpenSSL", "3.0.15", "OpenSSL Project", "Registry", "3.0.16", "winget"),
+                software("PowerShell", "7.4.6", "Microsoft", "Registry", "7.4.6", "winget"),
+                software("Microsoft Teams", "24152.1", "Microsoft", "Registry", "24152.1", "winget"),
+            ],
+            "patches": {
+                "installed": [patch("KB5049981", "Windows security update", "2025-01-14", "important", "Windows Update")],
+                "available": [patch("KB5051987", "Windows security update", "", "important", "Windows Update")],
+                "missing": [],
+            },
+        },
+        {
+            "id": "app-sap01", "hostname": "APP-SAP01",
+            "os_family": "windows", "os_name": "Windows Server 2022", "os_version": "20348.3207",
+            "kernel": "10.0.20348", "arch": "AMD64", "cpu": "Xeon Gold 6338",
+            "memory_bytes": 64 * 1024 ** 3, "disk_total": 1024 * 1024 ** 3,
+            "disk_used": 640 * 1024 ** 3, "ip_addresses": ["10.20.4.15"],
+            "last_scan": stamp - 1800, "reboot_pending": False, "scan_count": 6,
+            "notes": ["Critical SAP production host", "Patch baseline applied"],
+            "software": [
+                software("SAP GUI", "7.70", "SAP", "Registry", "7.70", "baseline"),
+                software("OpenSSL", "3.0.14", "OpenSSL Project", "Registry", "3.0.16", "winget"),
+                software("7-Zip", "24.09", "Igor Pavlov", "Registry", "24.09", "winget"),
+                software("Java", "17.0.11", "Oracle", "Registry", "17.0.12", "winget"),
+            ],
+            "patches": {
+                "installed": [
+                    patch("KB5049981", "Windows security update", "2025-01-14", "important", "Windows Update"),
+                    patch("KB5051987", "Windows security update", "2025-02-11", "important", "Windows Update"),
+                ],
+                "available": [],
+                "missing": [],
+            },
+        },
+        {
+            "id": "mbp-design", "hostname": "MBP-DESIGN",
+            "os_family": "macos", "os_name": "macOS Sequoia", "os_version": "15.2",
+            "kernel": "Darwin 24.2.0", "arch": "arm64", "cpu": "Apple M3 Pro",
+            "memory_bytes": 36 * 1024 ** 3, "disk_total": 1024 * 1024 ** 3,
+            "disk_used": 454 * 1024 ** 3, "ip_addresses": ["10.20.4.71"],
+            "last_scan": stamp - 2400, "reboot_pending": False, "scan_count": 3,
+            "notes": ["macOS update available", "Homebrew inventory included"],
+            "software": [
+                software("Google Chrome", "131.0.6778", "Google", "Applications", "132.0.6834", "softwareupdate"),
+                software("7-Zip", "24.09", "Igor Pavlov", "Homebrew", "24.09", "brew"),
+                software("OpenSSL", "3.0.15", "OpenSSL Project", "Homebrew", "3.0.16", "brew"),
+                software("Slack", "4.41.96", "Salesforce", "Applications", "4.41.96", "softwareupdate"),
+            ],
+            "patches": {
+                "installed": [patch("macOS-15.2", "macOS Sequoia 15.2", "2025-01-20", "important", "InstallHistory")],
+                "available": [patch("macOS-15.3", "macOS Sequoia 15.3", "", "important", "softwareupdate")],
+                "missing": [],
+            },
+        },
+        {
+            "id": "linux-jump", "hostname": "LINUX-JUMP",
+            "os_family": "linux", "os_name": "Ubuntu 24.04 LTS", "os_version": "24.04",
+            "kernel": "6.8.0-51-generic", "arch": "x86_64", "cpu": "AMD EPYC 7B13",
+            "memory_bytes": 16 * 1024 ** 3, "disk_total": 256 * 1024 ** 3,
+            "disk_used": 88 * 1024 ** 3, "ip_addresses": ["10.20.4.12"],
+            "last_scan": stamp - 1200, "reboot_pending": False, "scan_count": 5,
+            "notes": ["Package-manager updates available"],
+            "software": [
+                software("OpenSSL", "3.0.13", "OpenSSL Project", "dpkg", "3.0.16", "apt"),
+                software("Java", "17.0.11", "OpenJDK", "dpkg", "17.0.12", "apt"),
+                software("nginx", "1.24.0", "nginx.org", "dpkg", "1.24.0", "apt"),
+                software("OpenSSH", "9.6p1", "OpenBSD", "dpkg", "9.6p1", "apt"),
+            ],
+            "patches": {
+                "installed": [],
+                "available": [
+                    patch("openssl", "OpenSSL package update", "", "important", "apt"),
+                    patch("openjdk-17", "OpenJDK package update", "", "important", "apt"),
+                ],
+                "missing": [],
+            },
+        },
+        {
+            "id": "ot-historian", "hostname": "OT-HISTORIAN",
+            "os_family": "linux", "os_name": "Red Hat Enterprise Linux 8.9", "os_version": "8.9",
+            "kernel": "4.18.0-513", "arch": "x86_64", "cpu": "Xeon Silver 4210",
+            "memory_bytes": 32 * 1024 ** 3, "disk_total": 512 * 1024 ** 3,
+            "disk_used": 372 * 1024 ** 3, "ip_addresses": ["10.30.7.50"],
+            "last_scan": stamp - 3000, "reboot_pending": True, "scan_count": 2,
+            "notes": ["Critical OT historian", "Kernel update pending"],
+            "software": [
+                software("OpenSSL", "1.1.1k", "OpenSSL Project", "rpm", "3.0.16", "dnf"),
+                software("Java", "8.0.392", "Oracle", "rpm", "17.0.12", "dnf"),
+                software("nginx", "1.20.1", "nginx.org", "rpm", "1.20.1", "dnf"),
+            ],
+            "patches": {
+                "installed": [],
+                "available": [
+                    patch("kernel", "Kernel security update", "", "critical", "dnf"),
+                    patch("openssl", "OpenSSL package update", "", "critical", "dnf"),
+                ],
+                "missing": [],
+            },
+        },
+    ]
+    for host in hosts:
+        store.upsert(host)
+
+
 def seed_demo(hub: Hub) -> None:
     if not hub.assets.rows:
-        hub.assets = Assets(use_defaults=True)
+        hub.assets.rows = Assets(use_defaults=True).rows
+    hub.inventory.assets = hub.assets
     stamp = now()
     events = []
 
@@ -1062,6 +1502,8 @@ def seed_demo(hub: Hub) -> None:
     hub.set_sensor("osquery", "demo", "Synthetic process-to-socket attribution")
     hub.set_sensor("wazuh", "demo", "Synthetic Windows 4624/4625 events")
     hub.set_sensor("ingest", "online", "HTTP ingest API ready")
+    seed_inventory_demo(hub.inventory)
+    hub.set_sensor("inventory", "demo", "Synthetic fleet inventory")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1128,6 +1570,31 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self._json(case)
             return
+        if path == "/api/v1/inventory/summary":
+            self._json({"summary": hub.inventory.summary(), "hosts": hub.inventory.host_rows()})
+            return
+        if path == "/api/v1/inventory/hosts":
+            self._json({"hosts": hub.inventory.host_rows()})
+            return
+        if path.startswith("/api/v1/inventory/hosts/"):
+            host = hub.inventory.hosts.get(path.rsplit("/", 1)[-1])
+            if not host:
+                self._json({"error": "host not found"}, 404)
+            else:
+                self._json(host)
+            return
+        if path == "/api/v1/inventory/software":
+            self._json({"software": hub.inventory.software(query.get("q", [""])[0])})
+            return
+        if path == "/api/v1/inventory/patch-gaps":
+            self._json({"gaps": hub.inventory.patch_gaps()})
+            return
+        if path == "/api/v1/inventory/export.csv":
+            body = hub.inventory.csv_text().encode()
+            self._send(body, "text/csv; charset=utf-8", headers={
+                "Content-Disposition": "attachment; filename=kavach-inventory.csv",
+            })
+            return
         if path == "/api/v1/entities":
             self._json({
                 "entities": hub.search_entities(
@@ -1151,7 +1618,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = unquote(parsed.path)
         hub: Hub = self.server.hub  # type: ignore[attr-defined]
-        if path not in ("/api/v1/events", "/api/v1/demo"):
+        if path not in ("/api/v1/events", "/api/v1/demo", "/api/v1/inventory"):
             self._json({"error": "not found"}, 404)
             return
         if not self._authorised():
@@ -1170,6 +1637,14 @@ class Handler(BaseHTTPRequestHandler):
             seed_demo(hub)
             self._json({"ok": True, "events": len(hub.events)})
             return
+        if path == "/api/v1/inventory":
+            host = payload.get("host") if isinstance(payload, dict) and isinstance(payload.get("host"), dict) else payload
+            if not isinstance(host, dict):
+                self._json({"error": "inventory snapshot must be an object"}, 400)
+                return
+            saved = hub.inventory.upsert(host)
+            self._json({"ok": True, "host": saved["id"], "summary": hub.inventory.summary()})
+            return
         raw_events = payload if isinstance(payload, list) else payload.get("events", [])
         if not isinstance(raw_events, list):
             self._json({"error": "events must be an array"}, 400)
@@ -1183,6 +1658,7 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1", help="bind host (default: localhost)")
     parser.add_argument("--port", type=int, default=8789, help="port (default: 8789)")
     parser.add_argument("--critical-assets", default="", help="JSON list of critical assets")
+    parser.add_argument("--patch-baseline", default="", help="JSON software/patch baseline")
     parser.add_argument("--archive", default="", help="optional JSONL archive path")
     parser.add_argument("--zeek-dir", default="", help="Zeek JSON log directory")
     parser.add_argument("--zeek-replay", action="store_true", help="read existing Zeek logs")
@@ -1196,7 +1672,8 @@ def main() -> None:
     args = parser.parse_args()
 
     assets = Assets.from_file(args.critical_assets)
-    hub = Hub(assets, archive=args.archive or None)
+    baseline = Baseline.from_file(args.patch_baseline or None, use_defaults=args.demo)
+    hub = Hub(assets, archive=args.archive or None, baseline=baseline)
     hub.register_sensor("ingest", "online", "HTTP ingest API ready")
 
     sensors: list[Sensor] = []

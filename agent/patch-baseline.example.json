@@ -1,0 +1,19 @@
+{
+  "software": [
+    { "name": "7-Zip", "minimum_version": "24.09" },
+    { "name": "Google Chrome", "minimum_version": "132.0" },
+    { "name": "OpenSSL", "minimum_version": "3.0.16" },
+    { "name": "Java", "minimum_version": "17.0.12" },
+    { "name": "SAP GUI", "minimum_version": "7.70" }
+  ],
+  "required_patches": {
+    "windows": [ "KB5049981", "KB5051987" ],
+    "macos": [],
+    "linux": []
+  },
+  "minimum_build": {
+    "windows": "19045.5487",
+    "macos": "15.3",
+    "linux": ""
+  }
+}

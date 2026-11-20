@@ -53,6 +53,33 @@
     .sn-toolbar .actions { margin-top: 0; }
     .sn-toolbar button { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 7px 10px; font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
     .sn-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .sn-kpis-six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .sn-inventory-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+    .sn-inventory-grid > .nw-panel { min-width: 0; }
+    .sn-inventory-table { min-width: 860px; }
+    .sn-inventory-table tr[data-host] { cursor: pointer; }
+    .sn-inventory-table tr[data-host]:hover td { background: rgba(232,163,61,.04); }
+    .sn-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+    .sn-facts div { border: 1px solid var(--line); border-radius: 6px; background: var(--canvas); padding: 7px 8px; }
+    .sn-facts span { display: block; color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .07em; }
+    .sn-facts b { display: block; margin-top: 3px; color: var(--ink); font-size: 10px; font-weight: 600; overflow-wrap: anywhere; }
+    .sn-detail-panel { margin-top: 14px; }
+    .sn-detail-panel h4 { margin: 0 0 6px; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    .sn-detail-panel .nw-table-wrap { margin-top: 6px; max-height: 380px; overflow: auto; }
+    .sn-patch-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+    .sn-patch-col { border: 1px solid var(--line); border-radius: 7px; background: var(--canvas); padding: 9px; }
+    .sn-patch-col h4 { margin: 0; font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+    .sn-patch-col ul { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 5px; }
+    .sn-patch-col li { color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .sn-patch-col li b { color: var(--ink); font-weight: 600; }
+    .sn-inventory-note { color: var(--muted); font-size: 9px; line-height: 1.5; margin-top: 8px; }
+    .sn-inv-status { display: inline-flex; border-radius: 4px; padding: 2px 5px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .sn-inv-status.outdated { background: rgba(249,112,102,.12); color: var(--bad); }
+    .sn-inv-status.current { background: rgba(79,209,197,.1); color: var(--good); }
+    .sn-inv-status.unknown { background: rgba(127,176,255,.1); color: var(--info); }
+    @media (max-width: 1000px) { .sn-kpis-six { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .sn-facts, .sn-patch-cols { grid-template-columns: 1fr; } .sn-inventory-table { min-width: 760px; } }
+    @media (max-width: 380px) { .sn-kpis-six { grid-template-columns: 1fr; } }
     .sn-rules { display: grid; gap: 0; margin-top: 14px; }
     .sn-rule { border-top: 1px solid var(--line); padding: 8px 0; }
     .sn-rule b { display: block; color: var(--ink); font-size: 10px; }
@@ -73,6 +100,7 @@
     </a>
     <nav aria-label="Primary">
       <a href="/">Sensor hub</a>
+      <a href="#inventory">Inventory</a>
       <a href="/api/v1/health">API health</a>
       <a href="/api/v1/snapshot">Snapshot API</a>
     </nav>
@@ -115,6 +143,59 @@
         <div class="nw-kpi"><p>Open cases</p><b id="kpi-cases">—</b><span>evidence-cited</span></div>
         <div class="nw-kpi"><p>Critical assets</p><b id="kpi-assets">—</b><span>watchlist</span></div>
         <div class="nw-kpi"><p>Sensors</p><b id="kpi-sensors">—</b><span>reporting</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="inventory">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Asset &amp; patch watch</p>
+          <h2>What is installed, and what is missing?</h2>
+        </div>
+        <div class="sn-toolbar">
+          <button type="button" id="inventory-refresh">Refresh inventory</button>
+          <button type="button" id="inventory-export">Export CSV</button>
+        </div>
+      </div>
+      <div class="nw-kpis sn-kpis sn-kpis-six">
+        <div class="nw-kpi"><p>Hosts</p><b id="inv-hosts">—</b><span>reporting inventory</span></div>
+        <div class="nw-kpi"><p>Software</p><b id="inv-software">—</b><span>installed packages/apps</span></div>
+        <div class="nw-kpi"><p>Outdated</p><b id="inv-outdated">—</b><span>below baseline or latest</span></div>
+        <div class="nw-kpi"><p>Missing patches</p><b id="inv-missing">—</b><span>baseline gaps</span></div>
+        <div class="nw-kpi"><p>Critical gaps</p><b id="inv-critical-gaps">—</b><span>critical hosts with gaps</span></div>
+        <div class="nw-kpi"><p>Reboot pending</p><b id="inv-reboot">—</b><span>hosts needing restart</span></div>
+      </div>
+      <div class="sn-inventory-grid">
+        <div class="nw-panel">
+          <div class="nw-panel-head"><h3>Fleet</h3><span id="inventory-note">Loading inventory…</span></div>
+          <div class="nw-table-wrap" style="border:0">
+            <table class="nw-table sn-inventory-table">
+              <thead><tr><th>Host</th><th>OS</th><th class="num">Software</th><th class="num">Outdated</th><th class="num">Missing</th><th class="num">Updates</th><th>Reboot</th><th>Critical</th><th>Risk</th><th>Last scan</th></tr></thead>
+              <tbody id="inventory-hosts"><tr><td colspan="10" class="sn-empty">Waiting for inventory…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head"><h3>Host detail</h3><span id="inventory-host-label">Select a host</span></div>
+          <div id="inventory-detail"><p class="sn-empty">Select a host to see installed software, installed patches and missing updates.</p></div>
+        </div>
+      </div>
+      <div class="nw-panel" style="margin-top:12px">
+        <div class="nw-panel-head"><h3>Software search</h3><span>fleet-wide</span></div>
+        <form class="sn-entity-search" id="inventory-search-form">
+          <input id="inventory-search" type="search" placeholder="OpenSSL, Chrome, SAP GUI, 7-Zip…">
+          <button type="submit">Search software</button>
+        </form>
+        <div id="inventory-search-results"></div>
+      </div>
+      <div class="nw-panel" style="margin-top:12px">
+        <div class="nw-panel-head"><h3>Patch gaps</h3><span>baseline, build and reboot posture</span></div>
+        <div class="nw-table-wrap" style="border:0">
+          <table class="nw-table sn-inventory-table">
+            <thead><tr><th>Host</th><th>OS</th><th>Build</th><th>Missing baseline patches</th><th class="num">Available</th><th>Reboot</th><th>Critical</th><th>Risk</th></tr></thead>
+            <tbody id="inventory-gaps"><tr><td colspan="8" class="sn-empty">Waiting for inventory…</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -200,6 +281,7 @@
       "use strict";
       const $ = (id) => document.getElementById(id);
       let lastSnapshot = 0;
+      let selectedInventoryHost = "";
 
       function esc(value) {
         return String(value == null ? "" : value).replace(/[&<>"']/g, (c) => ({
@@ -211,6 +293,14 @@
         const n = Number(ts);
         if (!n) return "—";
         return new Date(n * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      }
+
+      function fmtDateTime(ts) {
+        const n = Number(ts);
+        if (!n) return "—";
+        return new Date(n * 1000).toLocaleString([], {
+          year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit",
+        });
       }
 
       function fmtNumber(value) {
@@ -323,6 +413,166 @@
         }
       }
 
+
+      function fmtBytes(value) {
+        const n = Number(value || 0);
+        if (!n) return "—";
+        if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`;
+        if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(0)} MB`;
+        if (n >= 1024) return `${(n / 1024).toFixed(0)} KB`;
+        return `${n} B`;
+      }
+
+      function riskClass(risk) {
+        return risk === "high" || risk === "critical" ? "high" : risk === "medium" ? "medium" : "low";
+      }
+
+      function statusTag(status) {
+        const safe = status === "outdated" ? "outdated" : status === "current" ? "current" : "unknown";
+        return `<span class="sn-inv-status ${safe}">${esc(status || "unknown")}</span>`;
+      }
+
+      function renderInventoryRows(hosts) {
+        const body = $("inventory-hosts");
+        if (!body) return;
+        if (!hosts.length) {
+          body.innerHTML = '<tr><td colspan="10" class="sn-empty">No inventory yet. Run <code>agent/kavach_inventory_agent.py --hub http://127.0.0.1:8789</code>.</td></tr>';
+          return;
+        }
+        body.innerHTML = hosts.map((host) => `<tr data-host="${esc(host.id)}">
+          <td><strong>${esc(host.hostname)}</strong><br><small>${esc(host.os_family)}</small></td>
+          <td>${esc(host.os_name)}<br><small>${esc(host.os_version)}</small></td>
+          <td class="num">${fmtNumber(host.software_count)}</td>
+          <td class="num">${fmtNumber(host.outdated_count)}</td>
+          <td class="num">${fmtNumber(host.missing_patch_count)}${host.build_outdated ? ' <span class="nw-risk medium">build</span>' : ""}</td>
+          <td class="num">${fmtNumber(host.available_count)}</td>
+          <td>${host.reboot_pending ? '<span class="nw-risk medium">yes</span>' : "—"}</td>
+          <td>${host.critical_asset ? `<span class="nw-risk critical">${esc(host.critical_label || "critical")}</span>` : "—"}</td>
+          <td>${riskClass(host.risk) === "high" ? '<span class="nw-risk high">high</span>' : riskClass(host.risk) === "medium" ? '<span class="nw-risk medium">medium</span>' : '<span class="nw-risk low">low</span>'}</td>
+          <td>${fmtDateTime(host.last_scan)}</td>
+        </tr>`).join("");
+        body.querySelectorAll("[data-host]").forEach((row) => {
+          row.addEventListener("click", () => loadHost(row.dataset.host || ""));
+        });
+      }
+
+      async function loadInventory() {
+        try {
+          const data = await api("/api/v1/inventory/summary");
+          const summary = data.summary;
+          $("inv-hosts").textContent = fmtNumber(summary.hosts);
+          $("inv-software").textContent = fmtNumber(summary.software);
+          $("inv-outdated").textContent = fmtNumber(summary.outdated);
+          $("inv-missing").textContent = fmtNumber(summary.missingPatches);
+          $("inv-critical-gaps").textContent = fmtNumber(summary.criticalGaps);
+          $("inv-reboot").textContent = fmtNumber(summary.rebootPending);
+          $("inventory-note").textContent = `${summary.hosts} hosts · ${summary.software} packages · baseline ${summary.baseline.software} apps / ${summary.baseline.requiredPatches} patches`;
+          renderInventoryRows(data.hosts || []);
+          await loadPatchGaps();
+          if (selectedInventoryHost) await loadHost(selectedInventoryHost);
+        } catch (error) {
+          showError(`Inventory load failed: ${error.message}`);
+        }
+      }
+
+      function patchRows(rows) {
+        if (!rows || !rows.length) return "<li>None</li>";
+        return rows.map((row) => `<li><b>${esc(row.id || row.title || "")}</b> ${esc(row.title || "")}</li>`).join("");
+      }
+
+      async function loadHost(hostId) {
+        if (!hostId) return;
+        selectedInventoryHost = hostId;
+        try {
+          const host = await api(`/api/v1/inventory/hosts/${encodeURIComponent(hostId)}`);
+          $("inventory-host-label").textContent = `${host.hostname} · ${host.os_name}`;
+          const software = (host.software || []).slice().sort((a, b) => (a.status === "outdated" ? -1 : 1) - (b.status === "outdated" ? -1 : 1) || a.name.localeCompare(b.name));
+          const softwareRows = software.length ? software.map((item) => `<tr>
+            <td><strong>${esc(item.name)}</strong><br><small>${esc(item.vendor || "—")}</small></td>
+            <td>${esc(item.version || "—")}</td>
+            <td>${esc(item.latest || item.baseline_min || "—")}</td>
+            <td>${statusTag(item.status)}<br><small>${esc(item.update_source || item.source || "")}</small></td>
+          </tr>`).join("") : '<tr><td colspan="4" class="sn-empty">No software collected.</td></tr>';
+          const critical = host.critical_asset ? `<span class="nw-risk critical">${esc(host.critical_label || "critical asset")}</span>` : "";
+          $("inventory-detail").innerHTML = `<div class="sn-detail-head"><b>${esc(host.hostname)}</b><span>${esc(host.os_name)} ${esc(host.os_version)} ${critical}</span></div>
+            <p class="sn-inventory-note">${esc(host.risk)} risk · last scan ${fmtDateTime(host.last_scan)} · ${fmtNumber(host.scan_count)} scans · ${fmtNumber(host.software.length)} applications · ${fmtNumber(host.outdated_count)} outdated · ${fmtNumber(host.missing_patch_count)} missing patches</p>
+            <div class="sn-facts">
+              <div><span>Kernel</span><b>${esc(host.kernel || "—")}</b></div>
+              <div><span>Architecture</span><b>${esc(host.arch || "—")}</b></div>
+              <div><span>CPU</span><b>${esc(host.cpu || "—")}</b></div>
+              <div><span>Memory</span><b>${fmtBytes(host.memory_bytes)}</b></div>
+              <div><span>Disk</span><b>${fmtBytes(host.disk_used)} / ${fmtBytes(host.disk_total)}</b></div>
+              <div><span>Addresses</span><b>${esc((host.ip_addresses || []).join(", ") || "—")}</b></div>
+            </div>
+            <div class="sn-detail-panel">
+              <h4>Installed software</h4>
+              <div class="nw-table-wrap"><table class="nw-table"><thead><tr><th>Software</th><th>Installed</th><th>Latest / baseline</th><th>Status</th></tr></thead><tbody>${softwareRows}</tbody></table></div>
+            </div>
+            <div class="sn-patch-cols">
+              <div class="sn-patch-col"><h4>Installed patches (${(host.patches.installed || []).length})</h4><ul>${patchRows(host.patches.installed)}</ul></div>
+              <div class="sn-patch-col"><h4>Available updates (${(host.patches.available || []).length})</h4><ul>${patchRows(host.patches.available)}</ul></div>
+              <div class="sn-patch-col"><h4>Missing baseline patches (${(host.patches.missing || []).length})</h4><ul>${patchRows(host.patches.missing)}</ul></div>
+            </div>
+            ${(host.notes || []).length ? `<p class="sn-inventory-note">${host.notes.map(esc).join(" · ")}</p>` : ""}`;
+          $("inventory-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) {
+          showError(`Host inventory failed: ${error.message}`);
+        }
+      }
+
+      async function loadPatchGaps() {
+        const body = $("inventory-gaps");
+        if (!body) return;
+        try {
+          const data = await api("/api/v1/inventory/patch-gaps");
+          const gaps = data.gaps || [];
+          if (!gaps.length) {
+            body.innerHTML = '<tr><td colspan="8" class="sn-empty">No baseline gaps. Every host meets the approved patch level.</td></tr>';
+            return;
+          }
+          body.innerHTML = gaps.map((gap) => {
+            const missing = (gap.missing || []).map((row) => esc(row.id || row.title || "")).filter(Boolean);
+            const build = gap.build_outdated ? `<span class="nw-risk medium">${esc(gap.os_version)} &lt; ${esc(gap.minimum_build)}</span>` : esc(gap.os_version || "—");
+            return `<tr data-gap-host="${esc(gap.host)}">
+              <td><strong>${esc(gap.hostname)}</strong></td>
+              <td>${esc(gap.os || "—")}</td>
+              <td>${build}</td>
+              <td>${missing.length ? missing.map((id) => `<code>${id}</code>`).join(" ") : "—"}</td>
+              <td class="num">${fmtNumber((gap.available || []).length)}</td>
+              <td>${gap.reboot_pending ? '<span class="nw-risk medium">yes</span>' : "—"}</td>
+              <td>${gap.critical_asset ? '<span class="nw-risk critical">critical</span>' : "—"}</td>
+              <td>${gap.risk === "high" ? '<span class="nw-risk high">high</span>' : gap.risk === "medium" ? '<span class="nw-risk medium">medium</span>' : '<span class="nw-risk low">low</span>'}</td>
+            </tr>`;
+          }).join("");
+          body.querySelectorAll("[data-gap-host]").forEach((row) => {
+            row.addEventListener("click", () => loadHost(row.dataset.gapHost || ""));
+          });
+        } catch (error) {
+          body.innerHTML = `<tr><td colspan="8" class="sn-empty">Patch gap load failed: ${esc(error.message)}</td></tr>`;
+        }
+      }
+
+      async function searchInventory(query) {
+        try {
+          const data = await api(`/api/v1/inventory/software?q=${encodeURIComponent(query || "")}`);
+          const rows = data.software || [];
+          const el = $("inventory-search-results");
+          if (!rows.length) {
+            el.innerHTML = '<p class="sn-empty">No matching software.</p>';
+            return;
+          }
+          el.innerHTML = `<div class="nw-table-wrap" style="margin-top:10px"><table class="nw-table"><thead><tr><th>Host</th><th>Software</th><th>Installed</th><th>Latest / baseline</th><th>Status</th></tr></thead><tbody>${rows.slice(0, 60).map((row) => `<tr>
+            <td><strong>${esc(row.hostname)}</strong><br><small>${esc(row.os)}</small></td>
+            <td>${esc(row.name)}<br><small>${esc(row.vendor || "")}</small></td>
+            <td>${esc(row.version || "—")}</td>
+            <td>${esc(row.latest || row.baseline_min || "—")}</td>
+            <td>${statusTag(row.status)}</td>
+          </tr>`).join("")}</tbody></table></div>`;
+        } catch (error) {
+          showError(`Software search failed: ${error.message}`);
+        }
+      }
+
       async function searchEntity(query) {
         const q = String(query || "").trim();
         if (q) $("entity-query").value = q;
@@ -373,6 +623,7 @@
             body: "{}",
           });
           await refresh();
+          await loadInventory();
         } catch (error) {
           showError(`Demo load failed: ${error.message}`);
         }
@@ -380,11 +631,18 @@
 
       $("refresh-button").addEventListener("click", refresh);
       $("demo-button").addEventListener("click", loadDemo);
+      $("inventory-refresh").addEventListener("click", loadInventory);
+      $("inventory-export").addEventListener("click", () => window.location.assign("/api/v1/inventory/export.csv"));
+      $("inventory-search-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        searchInventory($("inventory-search").value);
+      });
       $("entity-form").addEventListener("submit", (event) => {
         event.preventDefault();
         searchEntity($("entity-query").value);
       });
       refresh();
+      loadInventory();
       window.setInterval(() => {
         if (!document.hidden) refresh();
       }, 3000);

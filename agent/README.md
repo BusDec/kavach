@@ -138,6 +138,7 @@ Optional flags:
 --osqueryi PATH          path to osqueryi
 --osquery-interval 30    socket poll interval in seconds
 --wazuh-replay           read existing Wazuh alerts
+--patch-baseline PATH    approved software/patch baseline JSON
 --archive PATH           append normalised events to a JSONL archive
 --token TOKEN            require Bearer TOKEN for POST requests
 --host 127.0.0.1         bind address; keep it local unless you have controls
@@ -183,6 +184,110 @@ The hub binds to `127.0.0.1` by default. It does not take containment actions.
 The triage rules cover critical-asset access, identity/network correlation,
 suspicious process egress, authentication bursts, password spray and lateral
 movement. Cases cite the events that produced them.
+
+### Asset & patch watch
+
+The hub also keeps a read-only software and patch inventory. It answers what is
+installed, what is outdated, which baseline patches are missing and which hosts
+are critical assets. It does not install, remove or exploit anything.
+
+The demo seeds five synthetic hosts (Windows, macOS and Linux) with software,
+installed hotfixes, available updates and baseline gaps. The **Inventory**
+section shows the fleet, a host detail view, patch gaps and a fleet-wide software
+search. `GET /api/v1/inventory/export.csv` downloads the same data as CSV.
+
+To collect the machine running the hub:
+
+```bash
+python3 agent/kavach_inventory_agent.py --hub http://127.0.0.1:8789
+```
+
+The collector is read-only and metadata-only. It writes a snapshot locally or
+posts it to `POST /api/v1/inventory`. Available-update checks are opt-in because
+they are slower and use the network:
+
+```bash
+python3 agent/kavach_inventory_agent.py --check-updates --interval 3600 \
+  --hub http://127.0.0.1:8789
+```
+
+Collectors by platform:
+
+- **Windows:** registry uninstall keys (64-bit, 32-bit and per-user), Microsoft
+  Store apps via `Get-AppxPackage`, installed hotfixes via `Get-HotFix`, Windows
+  Update available updates through the Windows Update Agent COM API, pending
+  reboot flags. It deliberately avoids `Win32_Product`.
+- **macOS:** applications via `system_profiler SPApplicationsDataType`, Homebrew
+  formulae and casks, `brew outdated`, install history and optional
+  `softwareupdate -l`.
+- **Linux:** `dpkg-query`, `rpm -qa`, `apk info`, optional `apt list
+  --upgradable` and `dnf check-update`, plus `/var/run/reboot-required`.
+
+Patch baselines are optional. Without one the hub can only report “an update is
+available” from the local package manager. With one it can report approved
+minimum versions, required patch IDs and minimum OS builds. Copy
+`agent/patch-baseline.example.json` and pass it to the hub:
+
+```bash
+python3 agent/kavach_sensor_hub.py --demo \
+  --patch-baseline agent/patch-baseline.example.json
+```
+
+```json
+{
+  "software": [
+    { "name": "OpenSSL", "minimum_version": "3.0.16" },
+    { "name": "7-Zip", "minimum_version": "24.09" }
+  ],
+  "required_patches": {
+    "windows": ["KB5049981", "KB5051987"],
+    "linux": []
+  },
+  "minimum_build": {
+    "windows": "19045.5487",
+    "macos": "15.3",
+    "linux": ""
+  }
+}
+```
+
+Inventory endpoints:
+
+```text
+GET  /api/v1/inventory/summary
+GET  /api/v1/inventory/hosts
+GET  /api/v1/inventory/hosts/{id}
+GET  /api/v1/inventory/software?q=openssl
+GET  /api/v1/inventory/patch-gaps
+GET  /api/v1/inventory/export.csv
+POST /api/v1/inventory
+```
+
+A snapshot is a JSON object with host facts, `software`, `patches` and
+`reboot_pending`. The hub adds baseline status, risk and scan counts. It matches
+hostnames and IPs against the critical-asset list, so a critical host with a
+patch gap is ranked first.
+
+```bash
+curl -X POST http://127.0.0.1:8789/api/v1/inventory \
+  -H 'Content-Type: application/json' \
+  -d '{"host":{"hostname":"LAB-01","os_family":"linux","os_name":"Ubuntu 24.04","os_version":"24.04","software":[{"name":"OpenSSL","version":"3.0.13"}],"patches":{"installed":[],"available":[],"missing":[]}}}'
+```
+
+Limits:
+
+- Inventory is a point-in-time snapshot from the last collector run. Snapshots
+  are held in memory; restarting the hub clears them until the collector runs
+  again.
+- “Latest” means the newest version the local package manager can see, not a
+  vendor-approved enterprise baseline.
+- The collector reports installed updates; it does not prove a patch was
+  effective or that a host is vulnerability-free.
+- CVE, EPSS, KEV and end-of-life enrichment are not included yet. Use OSV, CISA
+  KEV, FIRST EPSS or vendor advisories as a separate, cached enrichment step.
+- For fleets, prefer existing agents (Wazuh Syscollector, osquery, SCCM, Intune
+  or WSUS) and post their inventory to the same endpoint rather than deploying
+  a new agent on every host.
 
 Tests:
 
