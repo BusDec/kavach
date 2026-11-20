@@ -13,6 +13,7 @@ Kavach covers SAP security and controls, OT/IT convergence, cloud and identity, 
 - `/pilot/` — customer-connect and pilot request page
 - `/privacy/` — privacy notice for the pilot form
 - `/portfolio/` — handoff to the common Nirmana ERP portfolio page
+- `/network/` — Network watch: metadata-only traffic dashboard for authorized networks
 
 ## Handouts
 
@@ -39,6 +40,20 @@ Open `index.html` locally, or serve the folder:
 ```bash
 python3 -m http.server 8080
 ```
+
+## Network watch
+
+`/network/` is a synthetic demo of the traffic dashboard. The local capture
+agent in `agent/` turns the same dashboard into a live, metadata-only view of
+one authorized interface:
+
+```bash
+sudo python3 agent/kavach_network_agent.py --interface en0
+```
+
+Open `http://127.0.0.1:8787/`. The agent reads packet headers with `tcpdump`;
+it does not capture payloads, credentials or application content. See
+`agent/README.md` for limits and authorization requirements.
 
 ## Contact
 

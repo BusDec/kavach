@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Network watch · Kavach</title>
+  <meta name="description" content="Metadata-first network watch for authorized IT/OT networks: inbound and outbound traffic by host, application and protocol, without capturing payloads.">
+  <meta property="og:title" content="Network watch · Kavach">
+  <meta property="og:description" content="See what the network is actually doing: hosts, applications, protocols and flows, without payloads.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kavach.nirmanaerp.com/network/">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark"></span>
+      <span class="brand-lockup">
+        <span class="brand-parent">Nirmana</span>
+        <span class="brand-name">Kavach</span>
+      </span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/#sap">SAP security</a>
+      <a href="/#ot">OT / IT</a>
+      <a href="/#cloud">Cloud &amp; identity</a>
+      <a href="/#respond">Incident readiness</a>
+      <a href="/network/">Network watch</a>
+      <a href="/business-case/">Business case</a>
+      <a href="/pilot/">Pilot</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="https://nirmanaerp.com/">Nirmana ERP</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="crumbs"><a href="/">Kavach</a><span>/</span><span>Network watch</span></div>
+
+    <section class="page-hero">
+      <p class="eyebrow">Network watch · metadata only</p>
+      <h1 class="page-title">See what the network is actually doing.</h1>
+      <p class="page-lede">
+        Inbound and outbound traffic by <strong>host, application and protocol</strong>.
+        The public page runs a synthetic feed; the local capture agent turns the same
+        dashboard into a live, metadata-only view of an authorized network.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="#capture">Connect the capture agent</a>
+        <a class="button secondary" href="#flows">View the flows</a>
+      </div>
+      <div class="nw-status">
+        <span class="nw-pill demo" id="source-pill"><span class="dot"></span><span id="source-label">Demo traffic</span></span>
+        <span class="nw-pill" id="interface-pill">Interface · demo0</span>
+        <span class="nw-pill" id="updated-pill">Updated · just now</span>
+        <span class="nw-pill">No payloads captured</span>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="nw-kpis">
+        <div class="nw-kpi"><p>Inbound</p><b id="kpi-in">—</b><span>last 60 seconds</span></div>
+        <div class="nw-kpi"><p>Outbound</p><b id="kpi-out">—</b><span>last 60 seconds</span></div>
+        <div class="nw-kpi"><p>Active hosts</p><b id="kpi-hosts">—</b><span>seen in this view</span></div>
+        <div class="nw-kpi"><p>Flows</p><b id="kpi-flows">—</b><span>sampled from capture</span></div>
+        <div class="nw-kpi"><p>Open alerts</p><b id="kpi-alerts">—</b><span>review first</span></div>
+      </div>
+
+      <div class="nw-grid">
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>Throughput · last 60 seconds</h2>
+            <span id="chart-range">inbound / outbound</span>
+          </div>
+          <canvas class="nw-chart" id="traffic-chart" aria-label="Inbound and outbound traffic chart"></canvas>
+          <div class="nw-legend">
+            <span><i style="background:var(--warn)"></i>Inbound</span>
+            <span><i style="background:var(--info)"></i>Outbound</span>
+          </div>
+        </div>
+
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>Protocol mix</h2>
+            <span>by bytes</span>
+          </div>
+          <div class="nw-mix" id="protocol-mix"></div>
+        </div>
+      </div>
+
+      <div class="nw-grid two">
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>Top applications</h2>
+            <span>classified by port and flow</span>
+          </div>
+          <div class="nw-apps" id="top-apps"></div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head">
+            <h2>What needs review</h2>
+            <span>rules, not payload inspection</span>
+          </div>
+          <div class="nw-alerts" id="alerts"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="hosts">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Hosts</p>
+          <h2>Who is talking, and to what.</h2>
+        </div>
+        <p class="text-[11px] text-muted" style="color:var(--muted);font-size:11px">Remote hosts · bytes over the selected window</p>
+      </div>
+      <div class="nw-table-wrap">
+        <table class="nw-table">
+          <thead>
+            <tr><th>Host</th><th>Address</th><th>Applications</th><th class="num">Inbound</th><th class="num">Outbound</th><th>Last seen</th><th>Risk</th></tr>
+          </thead>
+          <tbody id="hosts-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="flows">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Flows</p>
+          <h2>Every conversation has a direction.</h2>
+        </div>
+        <p style="color:var(--muted);font-size:11px">Metadata only · no payload or credential capture</p>
+      </div>
+
+      <div class="nw-filters">
+        <label for="filter-direction">Direction</label>
+        <select id="filter-direction">
+          <option value="all">All</option>
+          <option value="inbound">Inbound</option>
+          <option value="outbound">Outbound</option>
+          <option value="transit">Transit</option>
+        </select>
+        <label for="filter-protocol">Protocol</label>
+        <select id="filter-protocol"><option value="all">All</option></select>
+        <label for="filter-app">Application</label>
+        <select id="filter-app"><option value="all">All</option></select>
+        <label for="filter-host">Host</label>
+        <input id="filter-host" type="search" placeholder="IP or hostname">
+        <button class="nw-btn" id="pause-button" type="button">Pause view</button>
+      </div>
+
+      <div class="nw-table-wrap">
+        <table class="nw-table">
+          <thead>
+            <tr><th>Time</th><th>Host</th><th>Destination</th><th>Application</th><th>Protocol</th><th>Port</th><th>Direction</th><th class="num">Bytes</th><th>Verdict</th></tr>
+          </thead>
+          <tbody id="flows-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="capture">
+      <div class="nw-capture">
+        <div>
+          <p class="eyebrow">Capture agent</p>
+          <h2>Run it on a network you are authorized to monitor.</h2>
+          <p>
+            The public dashboard is a demonstration. The local agent uses
+            <code>tcpdump</code> to read packet headers on one interface, aggregates
+            them into flows, and serves this same dashboard at
+            <code>127.0.0.1:8787</code>. It does not capture payloads, credentials or
+            application data.
+          </p>
+          <pre class="nw-command">sudo python3 agent/kavach_network_agent.py --interface en0</pre>
+          <p class="nw-note">
+            On macOS, <code>en0</code> is usually Wi-Fi. This captures the traffic
+            visible to that host. Capturing other devices requires a TAP, SPAN or
+            authorized monitor-mode deployment — not a browser page. Get written
+            authorization and follow your privacy obligations before capturing any
+            network.
+          </p>
+          <div class="nw-links">
+            <a href="/agent/kavach_network_agent.py" download>Download the agent</a>
+            <a href="/agent/README.md">Read the agent guide</a>
+            <a href="https://gearbox.nirmanaerp.com/portfolio/">Nirmana portfolio</a>
+          </div>
+        </div>
+        <div>
+          <p class="eyebrow">Source</p>
+          <div class="nw-source">
+            <div><span>Mode</span><b id="source-mode">Demo</b></div>
+            <div><span>Interface</span><b id="source-interface">demo0</b></div>
+            <div><span>Packets</span><b id="source-packets">—</b></div>
+            <div><span>Flows</span><b id="source-flows">—</b></div>
+            <div><span>Dropped</span><b id="source-drops">—</b></div>
+            <div><span>Last update</span><b id="source-updated">—</b></div>
+          </div>
+          <p class="nw-note" id="source-error" style="display:none;border-left-color:var(--bad)"></p>
+          <p class="nw-note" style="margin-top:14px">
+            The agent is read-only: it never modifies, injects or blocks traffic. The
+            dashboard classifies applications from ports and flow metadata, not by
+            opening payloads.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <span class="brand-parent">Nirmana ERP</span>
+      <span class="footer-name">Kavach · Cybersecurity</span>
+    </div>
+    <div class="footer-links">
+      <a href="/network/">Network watch</a>
+      <a href="/business-case/">Business case</a>
+      <a href="/pilot/">Pilot</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="https://nirmanaerp.com/">Parent portal</a>
+    </div>
+  </footer>
+
+  <script src="/network/app.js"></script>
+</body>
+</html>
