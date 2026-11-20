@@ -4,17 +4,18 @@ Cybersecurity portfolio of [Nirmana ERP](https://nirmanaerp.com).
 
 **Live:** https://kavach.nirmanaerp.com/
 
-Kavach covers SAP security and controls, OT/IT convergence, cloud and identity, and incident readiness for asset-intensive enterprises.
+Kavach covers SAP security and controls, OT/IT convergence, protection of critical assets, devices, resources and logins, cloud identity, and incident readiness for asset-intensive enterprises.
 
 ## Pages
 
-- `/` — portfolio overview: SAP, OT/IT, cloud identity and incident readiness
+- `/` — portfolio overview: SAP, OT/IT, protection, cloud identity and incident readiness
 - `/business-case/` — C-suite business case: IT/OT risks, incident watch, the cost of waiting, privacy obligations across the US, Europe and India
 - `/pilot/` — customer-connect and pilot request page
 - `/privacy/` — privacy notice for the pilot form
 - `/portfolio/` — handoff to the common Nirmana ERP portfolio page
 - `/network/` — Network watch: metadata-only traffic dashboard for authorized networks
 - `/access/` — Access watch: failed sign-ins, odd hours, geographies, host access and critical assets
+- `/protect/` — Protection watch: critical assets, device posture, exposed resources, login risk and prioritised gaps
 
 ## Handouts
 
@@ -103,9 +104,37 @@ off-hours access, new countries, host/application access, MFA and legacy-auth
 posture, and critical-asset hits. A synthetic file is available at
 `access/samples/kavach-access-sample.csv`.
 
+## Protection watch
+
+`/protect/` is a read-only protection register for critical assets, devices,
+exposed resources and logins. It shows control coverage, missing controls,
+device posture, internet-facing services, privileged and stale accounts,
+prioritised gaps and owners.
+
+The public page runs a synthetic register and accepts a JSON export from a CMDB,
+EDR, vulnerability register, identity provider or the local collector. The file
+is parsed in the browser tab and never uploaded. Unknown controls stay
+unverified rather than being counted as protected.
+
+Collect the current machine's posture with the read-only collector:
+
+```bash
+python3 agent/kavach_protection_agent.py \
+  --asset-name "WS-PRIYA" \
+  --criticality high \
+  --owner "Operations" \
+  --site "HQ" \
+  --output protection.json
+```
+
+Then choose `protection.json` on `/protect/`. The collector checks patch state,
+disk encryption, host firewall, EDR presence, local administrator membership and
+listening services. It does not scan the network, exploit services or change the
+machine. See `agent/README.md` for flags and limitations.
+
 ## Critical assets
 
-Both dashboards share a browser-local watchlist for exact IPs, CIDR ranges and
+Network and Access share a browser-local watchlist for exact IPs, CIDR ranges and
 wildcard hostnames. It flags matching flows and access events locally; it is
 never uploaded. The default examples are SAP, a PLC and an OT historian. Replace
 them with the client's systems from the **Critical assets** panel on either page.

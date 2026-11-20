@@ -289,10 +289,69 @@ Limits:
   or WSUS) and post their inventory to the same endpoint rather than deploying
   a new agent on every host.
 
+### Protection collector
+
+`agent/kavach_protection_agent.py` produces a portable protection register for
+`/protect/`. It combines the host facts and patch state from the inventory
+collector with host posture that is collected locally:
+
+```bash
+python3 agent/kavach_protection_agent.py \
+  --asset-name "WS-PRIYA" \
+  --criticality high \
+  --owner "Operations" \
+  --site "HQ" \
+  --output protection.json
+```
+
+It records:
+
+- OS, hostname, owner, site, criticality and exposure supplied by the operator
+- patch status from the installed software and package-manager state
+- disk encryption (FileVault, BitLocker or LUKS), host firewall and EDR presence
+- local administrator membership and the current collector user
+- listening TCP services as **unverified** exposure candidates
+
+The output matches the JSON register accepted by `/protect/`. It is read-only:
+it does not scan the network, query remote hosts, exploit services or change
+settings. `--check-updates` adds a package-manager update check; without it,
+patch status is reported as unverified rather than assumed current.
+
+Useful flags:
+
+```text
+--check-updates          compare installed packages with the local package manager
+--asset-name NAME        display name; defaults to the hostname
+--asset-id ID            stable id; defaults to a slug of the name
+--criticality LEVEL      critical, high, medium or low
+--owner TEAM             asset owner
+--site SITE              site or location
+--environment ENV        production, staging, lab, etc.
+--exposure MODE          internet, partner, internal or air-gapped
+--organization NAME      organisation label
+--no-listeners           skip listening-service inventory
+--no-logins              skip local administrator/current-user inventory
+--output PATH            write the register JSON
+```
+
+Limitations:
+
+- EDR detection is best effort: it looks for known endpoint security processes
+  and does not prove coverage or policy health.
+- Listener inventory shows what is bound locally. Internet exposure, NAT,
+  firewall rules and upstream gateways are deliberately left unverified.
+- Patch status without `--check-updates` is unknown. With it, “current” means
+  the local package manager has no newer candidate, not that an enterprise
+  baseline is satisfied.
+- Local administrator enumeration may need elevation on Windows. The collector
+  does not read password hashes, tokens or authentication secrets.
+- The register is a point-in-time snapshot. Re-run the collector and re-import it
+  to refresh the view.
+
 Tests:
 
 ```bash
-python3 -m unittest agent/test_sensor_hub.py -v
+python3 -m unittest agent/test_sensor_hub.py agent/test_protection_agent.py -v
 ```
 
 ## What it classifies

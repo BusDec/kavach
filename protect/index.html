@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Protection watch · Kavach</title>
+  <meta name="description" content="A read-only protection register for critical assets, devices, exposed resources and logins: control coverage, gaps, owners and prioritised action. Analyze a JSON register locally; nothing is uploaded.">
+  <meta property="og:title" content="Protection watch · Kavach">
+  <meta property="og:description" content="Know what you are defending: critical assets, device posture, exposed resources and login protection in one local register.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kavach.nirmanaerp.com/protect/">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css?v=20261123">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark"></span>
+      <span class="brand-lockup">
+        <span class="brand-parent">Nirmana</span>
+        <span class="brand-name">Kavach</span>
+      </span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/#sap">SAP security</a>
+      <a href="/#ot">OT / IT</a>
+      <a href="/#cloud">Cloud &amp; identity</a>
+      <a href="/#respond">Incident readiness</a>
+      <a href="/network/">Network watch</a>
+      <a href="/access/">Access watch</a>
+      <a href="/protect/">Protection watch</a>
+      <a href="/business-case/">Business case</a>
+      <a href="/pilot/">Pilot</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="https://nirmanaerp.com/">Nirmana ERP</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="crumbs"><a href="/">Kavach</a><span>/</span><span>Protection watch</span></div>
+
+    <section class="page-hero">
+      <p class="eyebrow">Protection watch · read-only posture</p>
+      <h1 class="page-title">Know what you are defending.</h1>
+      <p class="page-lede">
+        A protection register for the assets that cannot fail: <strong>SAP, OT,
+        network, cloud and the identities that reach them</strong>. See control
+        coverage, device posture, exposed resources, login risk and the gaps that
+        need an owner. The public page runs a synthetic register; a JSON export can
+        be analyzed locally. Nothing is uploaded, and nothing is changed on the
+        estate.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="#register">Open the register</a>
+        <button class="button secondary" id="hero-sample" type="button">Download sample JSON</button>
+      </div>
+      <div class="nw-status">
+        <span class="nw-pill demo" id="source-pill"><span class="dot"></span><span id="source-label">Synthetic register</span></span>
+        <span class="nw-pill" id="asset-pill">— critical assets</span>
+        <span class="nw-pill" id="updated-pill">Updated · just now</span>
+        <span class="nw-pill" id="privacy-pill">Local analysis · no upload</span>
+      </div>
+    </section>
+
+    <section class="section" id="register">
+      <div class="nw-import" id="drop-zone">
+        <div class="nw-import-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </div>
+        <div class="nw-import-body">
+          <p class="eyebrow">Existing register · parsed on this device</p>
+          <h2>Already have an asset register? Drop it here.</h2>
+          <p>
+            Load a JSON export from a CMDB, EDR, vulnerability register, identity
+            provider or the Kavach protection collector. The file is read in this
+            browser tab and <strong>never uploaded</strong>. Unknown controls are
+            shown as unverified, not assumed to be protected.
+          </p>
+          <div class="actions nw-import-actions">
+            <button class="button primary" id="register-choose" type="button">Choose a register</button>
+            <button class="button secondary" id="register-sample" type="button">Try the synthetic register</button>
+            <button class="button secondary" id="reset-source" type="button" hidden>Back to demo</button>
+          </div>
+          <input id="register-file" type="file" accept=".json,application/json" hidden>
+          <p class="nw-import-status" id="register-status" role="status">No file selected. Nothing leaves this device.</p>
+          <details class="nw-import-help">
+            <summary>Expected JSON shape</summary>
+            <div class="aw-schema"><b>schema, generated_at, organization, assets[], devices[], resources[], logins[], gaps[]</b></div>
+            <p>
+              Each asset needs <code>id</code>, <code>name</code> and
+              <code>controls</code>. <code>devices</code>, <code>resources</code>,
+              <code>logins</code> and <code>gaps</code> are optional. Controls use
+              <code>true</code>, <code>false</code> or <code>null</code> for
+              unverified. See the synthetic register for a complete example.
+            </p>
+          </details>
+          <details class="nw-import-help">
+            <summary>Collect this machine's posture</summary>
+            <p>
+              The read-only collector checks OS posture, patch state, disk
+              encryption, firewall, local admin membership and listening services.
+              It does not scan the network, install software or change settings.
+            </p>
+            <pre class="nw-command">python3 agent/kavach_protection_agent.py \
+  --asset-name "WS-PRIYA" \
+  --criticality high \
+  --output protection.json</pre>
+            <p>Then choose <code>protection.json</code> above. The collector is also documented in the <a href="https://github.com/BusDec/kavach/blob/main/agent/README.md#protection-collector">agent guide</a>.</p>
+          </details>
+        </div>
+      </div>
+
+      <div id="protection-app">
+        <p class="nw-loading">Loading protection register…</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <span class="brand-parent">Nirmana ERP</span>
+      <span class="footer-name">Kavach · Cybersecurity</span>
+    </div>
+    <div class="footer-links">
+      <a href="/network/">Network watch</a>
+      <a href="/access/">Access watch</a>
+      <a href="/protect/">Protection watch</a>
+      <a href="/business-case/">Business case</a>
+      <a href="/pilot/">Pilot</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/portfolio/">Portfolio</a>
+      <a href="https://nirmanaerp.com/">Parent portal</a>
+    </div>
+  </footer>
+
+  <script src="/protect/app.js?v=20261123"></script>
+</body>
+</html>
