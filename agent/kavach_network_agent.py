@@ -408,9 +408,16 @@ class Capture(threading.Thread):
                 break
         self.state.status = "stopped"
         if self.process.stderr is not None:
-            error = self.process.stderr.read().strip()
-            if error:
-                self.state.error = error.splitlines()[-1][:240]
+            lines = [line.strip() for line in self.process.stderr.read().splitlines() if line.strip()]
+            ignored = (
+                "tcpdump: listening on",
+                "tcpdump: data link type",
+                "tcpdump: verbose output suppressed",
+                "tcpdump: WARNING:",
+            )
+            meaningful = [line for line in lines if not line.startswith(ignored)]
+            if meaningful:
+                self.state.error = meaningful[-1][:240]
                 print(f"tcpdump: {self.state.error}", file=sys.stderr)
 
     def stop(self) -> None:
