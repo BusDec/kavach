@@ -469,7 +469,7 @@
           $("inventory-note").textContent = `${summary.hosts} hosts · ${summary.software} packages · baseline ${summary.baseline.software} apps / ${summary.baseline.requiredPatches} patches`;
           renderInventoryRows(data.hosts || []);
           await loadPatchGaps();
-          if (selectedInventoryHost) await loadHost(selectedInventoryHost);
+          if (selectedInventoryHost) await loadHost(selectedInventoryHost, false);
         } catch (error) {
           showError(`Inventory load failed: ${error.message}`);
         }
@@ -480,7 +480,7 @@
         return rows.map((row) => `<li><b>${esc(row.id || row.title || "")}</b> ${esc(row.title || "")}</li>`).join("");
       }
 
-      async function loadHost(hostId) {
+      async function loadHost(hostId, scroll = true) {
         if (!hostId) return;
         selectedInventoryHost = hostId;
         try {
@@ -514,7 +514,7 @@
               <div class="sn-patch-col"><h4>Missing baseline patches (${(host.patches.missing || []).length})</h4><ul>${patchRows(host.patches.missing)}</ul></div>
             </div>
             ${(host.notes || []).length ? `<p class="sn-inventory-note">${host.notes.map(esc).join(" · ")}</p>` : ""}`;
-          $("inventory-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+          if (scroll) $("inventory-detail").scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (error) {
           showError(`Host inventory failed: ${error.message}`);
         }
