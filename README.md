@@ -43,9 +43,13 @@ python3 -m http.server 8080
 
 ## Network watch
 
-`/network/` is a synthetic demo of the traffic dashboard. The local capture
-agent in `agent/` turns the same dashboard into a live, metadata-only view of
-one authorized interface:
+`/network/` is a synthetic demo of the traffic dashboard. It also accepts an
+existing `.pcap` or `.pcapng` file from tcpdump, Wireshark, a SPAN/TAP or an
+authorized Wi-Fi monitor. The import is parsed in the browser tab and never
+uploaded; packets are aggregated into 5-tuple conversations before display.
+
+The local capture agent in `agent/` turns the same dashboard into a live,
+metadata-only view of one authorized interface:
 
 ```bash
 sudo python3 agent/kavach_network_agent.py --interface en0
@@ -54,6 +58,16 @@ sudo python3 agent/kavach_network_agent.py --interface en0
 Open `http://127.0.0.1:8787/`. The agent reads packet headers with `tcpdump`;
 it does not capture payloads, credentials or application content. See
 `agent/README.md` for limits and authorization requirements.
+
+To analyze traffic after the fact, capture to a file on the authorized host and
+drop it into `/network/`:
+
+```bash
+sudo tcpdump -i en0 -s 96 -w kavach-capture.pcap
+```
+
+Nothing is uploaded. A synthetic file is available at
+`network/samples/kavach-sample.pcap`.
 
 ## Contact
 

@@ -42,6 +42,23 @@ Options:
 --port 8787              # dashboard port
 ```
 
+## Analyze an existing capture
+
+You do not need the agent to inspect a file that already exists. Open
+`/network/`, choose **Choose a capture**, and select a `.pcap` or `.pcapng`
+from tcpdump, Wireshark, a SPAN/TAP or an authorized Wi-Fi monitor. The file is
+parsed in the browser tab, aggregated into 5-tuple conversations, and never
+uploaded. This works for classic pcap, pcapng, raw IP, Linux SLL, Ethernet and
+802.11/radiotap captures.
+
+To record a file on the host you are authorized to monitor:
+
+```bash
+sudo tcpdump -i en0 -s 96 -w kavach-capture.pcap
+```
+
+Stop with `Ctrl-C`, then drop the file into `/network/`.
+
 ## What it classifies
 
 - Direction: inbound, outbound or transit, relative to the local interface

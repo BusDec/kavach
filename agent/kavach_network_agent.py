@@ -28,7 +28,7 @@ import subprocess
 import sys
 import threading
 import time
-from collections import Counter, deque
+from collections import Counter, OrderedDict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -40,6 +40,8 @@ AGENT_FILE = Path(__file__).resolve()
 APP_PORTS = {
     443: "HTTPS/TLS",
     80: "HTTP",
+    21: "FTP",
+    23: "Telnet",
     53: "DNS",
     853: "DNS over TLS",
     22: "SSH",
@@ -161,15 +163,20 @@ class TrafficState:
         self.packets = 0
         self.bytes_in = 0
         self.bytes_out = 0
+        self.bytes_transit = 0
         self.drops = 0
-        self.series: dict[int, list[int]] = {}
-        self.flows: deque[dict] = deque(maxlen=300)
+        self.series: dict[int, list[int]] = {}  # [in, out, transit]
+        self.flows: OrderedDict[str, dict] = OrderedDict()
         self.hosts: dict[str, dict] = {}
         self.protocols: Counter[str] = Counter()
         self.apps: dict[str, dict] = {}
         self.alerts: deque[dict] = deque(maxlen=40)
         self.seen: set[str] = set()
         self.last_alert: dict[str, float] = {}
+
+    @staticmethod
+    def _known_port(port: int) -> bool:
+        return port in APP_PORTS or port in OT_PORTS or port in CLEAR_PORTS
 
     def alert(self, key: str, severity: str, title: str, detail: str) -> None:
         stamp = now()
@@ -191,7 +198,13 @@ class TrafficState:
 
         remote_ip = src_ip if direction == "inbound" else dst_ip
         remote_name = remote_ip
-        port = sport if direction == "inbound" else dport
+        if direction == "inbound":
+            port = sport
+        elif direction == "outbound":
+            port = dport
+        else:
+            known = self._known_port
+            port = dport if known(dport) or not known(sport) else sport
         app, protocol = classify(port, proto)
         risk = "low"
         verdict = "normal"
@@ -204,17 +217,21 @@ class TrafficState:
         elif not is_private_ip(remote_ip):
             risk = "medium"
             verdict = "watch"
-        if direction == "transit":
-            risk = "high" if risk == "high" else "medium"
-            verdict = "review"
+        if direction == "transit" and verdict == "normal":
+            risk = "low"
+            verdict = "transit"
 
         stamp = now()
-        host_name = self.local_name if direction == "outbound" else remote_name
-        dst_name = remote_name if direction == "outbound" else self.local_name
+        if direction == "outbound":
+            host_name, dst_name = self.local_name, remote_name
+        elif direction == "inbound":
+            host_name, dst_name = remote_name, self.local_name
+        else:
+            host_name, dst_name = src_ip, dst_ip
         flow = {
             "ts": stamp,
             "host": host_name,
-            "src": src_ip if direction == "outbound" else remote_name,
+            "src": host_name,
             "srcIp": src_ip,
             "dst": dst_name,
             "dstIp": dst_ip,
@@ -235,69 +252,107 @@ class TrafficState:
                 self.bytes_in += size
             elif direction == "outbound":
                 self.bytes_out += size
+            else:
+                self.bytes_transit += size
             sec = int(stamp)
-            bucket = self.series.setdefault(sec, [0, 0])
+            bucket = self.series.setdefault(sec, [0, 0, 0])
             if direction == "inbound":
                 bucket[0] += size
-            else:
+            elif direction == "outbound":
                 bucket[1] += size
+            else:
+                bucket[2] += size
             if len(self.series) > 180:
                 cutoff = sec - 180
                 for key in [k for k in self.series if k < cutoff]:
                     del self.series[key]
 
-            if remote_ip and remote_ip not in self.local_ips:
-                host = self.hosts.get(remote_ip)
+            if direction == "inbound":
+                peers = [(src_ip, size, 0)]
+            elif direction == "outbound":
+                peers = [(dst_ip, 0, size)]
+            else:
+                peers = [(src_ip, 0, size), (dst_ip, size, 0)]
+            for peer_ip, add_in, add_out in peers:
+                if not peer_ip or peer_ip in self.local_ips:
+                    continue
+                host = self.hosts.get(peer_ip)
                 if host is None:
                     host = {
-                        "ip": remote_ip,
-                        "name": remote_name,
-                        "vendor": flow["vendor"],
+                        "ip": peer_ip,
+                        "name": peer_ip,
+                        "vendor": "Unknown" if not is_private_ip(peer_ip) else "LAN",
                         "bytesIn": 0,
                         "bytesOut": 0,
                         "apps": set(),
                         "lastSeen": stamp,
-                        "risk": risk,
+                        "risk": "low",
                     }
-                    self.hosts[remote_ip] = host
-                if direction == "inbound":
-                    host["bytesIn"] += size
-                else:
-                    host["bytesOut"] += size
+                    self.hosts[peer_ip] = host
+                host["bytesIn"] += add_in
+                host["bytesOut"] += add_out
                 host["apps"].add(app)
                 host["lastSeen"] = stamp
                 if risk == "high" or (risk == "medium" and host["risk"] == "low"):
                     host["risk"] = risk
 
-                if remote_ip not in self.seen:
-                    self.seen.add(remote_ip)
-                    if not is_private_ip(remote_ip):
+                if peer_ip not in self.seen:
+                    self.seen.add(peer_ip)
+                    if not is_private_ip(peer_ip):
                         self.alert(
-                            f"new:{remote_ip}",
+                            f"new:{peer_ip}",
                             "info",
                             "New host observed",
-                            f"{remote_ip} appeared in the capture on {self.interface}.",
+                            f"{peer_ip} appeared in the capture on {self.interface}.",
                         )
 
             self.protocols[protocol] += size
             record = self.apps.setdefault(app, {"bytes": 0, "flows": 0})
             record["bytes"] += size
-            record["flows"] += 1
-            self.flows.appendleft(flow)
 
+            flow_key = f"{src_ip}|{sport}|{dst_ip}|{dport}|{proto}"
+            existing = self.flows.get(flow_key)
+            if existing is None:
+                flow["firstSeen"] = stamp
+                flow["lastSeen"] = stamp
+                flow["packets"] = 1
+                self.flows[flow_key] = flow
+                record["flows"] += 1
+            else:
+                existing["bytes"] += size
+                existing["packets"] += 1
+                existing["ts"] = stamp
+                existing["lastSeen"] = stamp
+                if risk == "high" or (risk == "medium" and existing["risk"] == "low"):
+                    existing["risk"] = risk
+                    existing["verdict"] = verdict
+                self.flows.move_to_end(flow_key)
+
+            stale = stamp - 300
+            while len(self.flows) > 500:
+                self.flows.popitem(last=False)
+            while self.flows:
+                _, first_flow = next(iter(self.flows.items()))
+                if first_flow["lastSeen"] >= stale:
+                    break
+                self.flows.popitem(last=False)
+
+            pair = "|".join(sorted((src_ip, dst_ip)))
             if port in CLEAR_PORTS:
-                self.alert(f"clear:{remote_ip}:{port}", "critical", "Cleartext protocol", f"{app} traffic to {remote_ip}:{port} is unencrypted.")
-            if port in OT_PORTS and direction == "outbound":
-                self.alert(f"ot:{remote_ip}:{port}", "high", f"OT protocol observed · {app}", f"{self.local_name} reached {remote_ip} on port {port}.")
-            if risk == "high" and verdict == "review":
-                self.alert(f"review:{remote_ip}", "high", "Unusual flow", f"Transit traffic involving {remote_ip} needs review.")
+                self.alert(f"clear:{pair}:{port}", "critical", "Cleartext protocol", f"{src_ip} → {dst_ip} on port {port} ({app}) is unencrypted.")
+            if port in OT_PORTS:
+                self.alert(f"ot:{pair}:{port}", "high", f"OT protocol observed · {app}", f"{src_ip} → {dst_ip} on port {port}.")
 
     def snapshot(self) -> dict:
         with self.lock:
             stamp = now()
             sec = int(stamp)
             series = [
-                {"in": self.series.get(i, [0, 0])[0], "out": self.series.get(i, [0, 0])[1]}
+                {
+                    "in": self.series.get(i, [0, 0, 0])[0],
+                    "out": self.series.get(i, [0, 0, 0])[1],
+                    "transit": self.series.get(i, [0, 0, 0])[2],
+                }
                 for i in range(sec - 59, sec + 1)
             ]
             hosts = []
@@ -321,6 +376,14 @@ class TrafficState:
                 "error": self.error,
                 "startedAt": self.started_at,
                 "updatedAt": stamp,
+                "captureHost": next(
+                    (
+                        ip
+                        for ip in sorted(self.local_ips)
+                        if ip not in ("127.0.0.1", "::1") and ":" not in ip
+                    ),
+                    "127.0.0.1",
+                ),
                 "stats": {
                     "packets": self.packets,
                     "flows": len(self.flows),
@@ -328,12 +391,13 @@ class TrafficState:
                     "hosts": len(self.hosts),
                     "bytesIn": self.bytes_in,
                     "bytesOut": self.bytes_out,
+                    "transit": self.bytes_transit,
                 },
                 "series": series,
                 "protocols": [{"name": k, "bytes": v} for k, v in self.protocols.most_common()],
                 "apps": [{"name": k, **v} for k, v in sorted(self.apps.items(), key=lambda kv: kv[1]["bytes"], reverse=True)],
                 "hosts": hosts,
-                "flows": list(self.flows)[:80],
+                "flows": list(self.flows.values())[::-1][:80],
                 "alerts": list(self.alerts)[:8],
             }
 
@@ -470,6 +534,15 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/network/app.js":
             self._send((ROOT / "network" / "app.js").read_bytes(), "text/javascript; charset=utf-8")
+            return
+        if path == "/network/pcap.js":
+            self._send((ROOT / "network" / "pcap.js").read_bytes(), "text/javascript; charset=utf-8")
+            return
+        if path == "/network/samples/kavach-sample.pcap":
+            self._send((ROOT / "network" / "samples" / "kavach-sample.pcap").read_bytes(), "application/vnd.tcpdump.pcap")
+            return
+        if path == "/network/samples/README.md":
+            self._send((ROOT / "network" / "samples" / "README.md").read_bytes(), "text/plain; charset=utf-8")
             return
         if path == "/favicon.ico":
             self._send(b"", "image/x-icon", status=204)

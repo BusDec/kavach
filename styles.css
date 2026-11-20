@@ -340,6 +340,40 @@ table.compare .hot { color: var(--warn); font-weight: 600; }
 .nw-pill.demo .dot { background: var(--warn); box-shadow: 0 0 0 4px rgba(232,163,61,.12); }
 .nw-pill.error { border-color: rgba(249,112,102,.4); color: var(--bad); }
 .nw-pill.error .dot { background: var(--bad); }
+.nw-pill.file { border-color: rgba(181,140,255,.36); color: #c7a8ff; }
+.nw-pill.file .dot { background: #b58cff; box-shadow: 0 0 0 4px rgba(181,140,255,.12); }
+.nw-pill.loading { border-color: rgba(232,163,61,.36); color: var(--warn); }
+.nw-pill.loading .dot { background: var(--warn); animation: nw-pulse 1s ease-in-out infinite; }
+@keyframes nw-pulse { 50% { opacity: .3; } }
+.nw-import {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 16px;
+  border: 1px dashed rgba(232,163,61,.34);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(232,163,61,.055), transparent 42%),
+    var(--surface);
+  padding: 22px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.nw-import.dragging { border-color: var(--warn); background: linear-gradient(135deg, rgba(232,163,61,.12), transparent 55%), var(--panel); }
+.nw-import-icon { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid rgba(232,163,61,.24); border-radius: 12px; background: rgba(232,163,61,.06); color: var(--warn); }
+.nw-import h2 { margin: 0; font-size: 20px; letter-spacing: -.025em; }
+.nw-import p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+.nw-import p code { color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95em; }
+.nw-import-actions { margin-top: 14px; }
+.nw-import .button { border: 1px solid transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.nw-import .button.secondary { border-color: var(--line); }
+.nw-import .button[hidden] { display: none; }
+.nw-import-status { margin-top: 12px !important; font-size: 10px !important; }
+.nw-import-status.success { color: var(--good) !important; }
+.nw-import-status.error { color: var(--bad) !important; }
+.nw-import-status.working { color: var(--warn) !important; }
+.nw-import-help { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.nw-import-help summary { cursor: pointer; color: var(--info); font-size: 10px; font-weight: 600; }
+.nw-import-help p { margin-top: 8px; }
+.nw-import-help .nw-command { margin-top: 8px; }
 .nw-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--line); background: var(--line); margin-top: 22px; }
 .nw-kpi { background: var(--surface); padding: 15px 14px; }
 .nw-kpi p { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
@@ -392,6 +426,7 @@ table.compare .hot { color: var(--warn); font-weight: 600; }
 .nw-filters select:focus, .nw-filters input:focus { border-color: var(--warn); }
 .nw-filters .nw-btn { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 6px 10px; font: inherit; font-size: 10px; cursor: pointer; }
 .nw-filters .nw-btn:hover { background: var(--panel); }
+.nw-filters .nw-btn:disabled { opacity: .5; cursor: default; }
 .nw-empty { padding: 18px; color: var(--muted); font-size: 11px; text-align: center; }
 .nw-capture { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 20px; }
 .nw-capture h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; }
@@ -405,7 +440,8 @@ table.compare .hot { color: var(--warn); font-weight: 600; }
 .nw-source { display: grid; gap: 7px; margin-top: 12px; }
 .nw-source div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; color: var(--muted); font-size: 10px; }
 .nw-source div:last-child { border-bottom: 0; }
-.nw-source b { color: var(--ink); font-weight: 600; }
+.nw-source div[hidden] { display: none; }
+.nw-source b { color: var(--ink); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 .nw-loading { color: var(--muted); font-size: 10px; }
 @media (max-width: 1000px) {
   .nw-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -415,4 +451,6 @@ table.compare .hot { color: var(--warn); font-weight: 600; }
   .nw-kpis { grid-template-columns: 1fr; }
   .nw-panel { padding: 14px; }
   .nw-chart { height: 180px; }
+  .nw-import { grid-template-columns: 1fr; padding: 18px; }
+  .nw-import-icon { width: 44px; height: 44px; }
 }

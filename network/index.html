@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Network watch · Kavach</title>
-  <meta name="description" content="Metadata-first network watch for authorized IT/OT networks: inbound and outbound traffic by host, application and protocol, without capturing payloads.">
+  <meta name="description" content="Metadata-first network watch for authorized IT/OT networks: inbound and outbound traffic by host, application and protocol, without capturing payloads. Analyze a live interface or an existing pcap locally.">
   <meta property="og:title" content="Network watch · Kavach">
-  <meta property="og:description" content="See what the network is actually doing: hosts, applications, protocols and flows, without payloads.">
+  <meta property="og:description" content="See what the network is actually doing: hosts, applications, protocols and flows, without payloads. Drop in a pcap for local analysis.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://kavach.nirmanaerp.com/network/">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -42,18 +42,58 @@
       <h1 class="page-title">See what the network is actually doing.</h1>
       <p class="page-lede">
         Inbound and outbound traffic by <strong>host, application and protocol</strong>.
-        The public page runs a synthetic feed; the local capture agent turns the same
-        dashboard into a live, metadata-only view of an authorized network.
+        The public page runs a synthetic feed, the local capture agent streams live
+        metadata, and an existing <code>.pcap</code> or <code>.pcapng</code> can be
+        analyzed on this page without uploading it.
       </p>
       <div class="actions">
-        <a class="button primary" href="#capture">Connect the capture agent</a>
-        <a class="button secondary" href="#flows">View the flows</a>
+        <a class="button primary" href="#analyze">Analyze a capture</a>
+        <a class="button secondary" href="#capture">Connect the capture agent</a>
       </div>
       <div class="nw-status">
         <span class="nw-pill demo" id="source-pill"><span class="dot"></span><span id="source-label">Demo traffic</span></span>
         <span class="nw-pill" id="interface-pill">Interface · demo0</span>
         <span class="nw-pill" id="updated-pill">Updated · just now</span>
-        <span class="nw-pill">No payloads captured</span>
+        <span class="nw-pill" id="privacy-pill">No payloads captured</span>
+      </div>
+    </section>
+
+    <section class="section" id="analyze">
+      <div class="nw-import" id="drop-zone">
+        <div class="nw-import-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>
+          </svg>
+        </div>
+        <div class="nw-import-body">
+          <p class="eyebrow">Past capture · parsed on this device</p>
+          <h2>Already have a tcpdump? Drop it here.</h2>
+          <p>
+            Analyze a <code>.pcap</code> or <code>.pcapng</code> from <code>tcpdump</code>,
+            Wireshark, a SPAN port or an authorized Wi-Fi monitor. The file is read in
+            this browser tab and <strong>never uploaded</strong>. Only packet headers are
+            interpreted: addresses, ports, protocols, byte counts and timestamps.
+          </p>
+          <div class="actions nw-import-actions">
+            <button class="button primary" id="pcap-choose" type="button">Choose a capture</button>
+            <button class="button secondary" id="pcap-sample" type="button">Try a synthetic sample</button>
+            <button class="button secondary" id="reset-source" type="button" hidden>Back to live / demo</button>
+          </div>
+          <input id="pcap-file" type="file" accept=".pcap,.pcapng,.cap,application/vnd.tcpdump.pcap,application/octet-stream" hidden>
+          <p class="nw-import-status" id="pcap-status" role="status">No file selected. Nothing leaves this device.</p>
+          <details class="nw-import-help">
+            <summary>How to make a capture</summary>
+            <pre class="nw-command">sudo tcpdump -i en0 -s 96 -w kavach-capture.pcap
+# stop with Ctrl-C, then drop the file above</pre>
+            <p>
+              On Linux, <code>-i any</code> captures across interfaces. Keeping
+              <code>-s 96</code> retains headers without full payloads. For Wi-Fi
+              monitor-mode captures, use an authorized adapter and channel, and note
+              that encrypted 802.11 payloads cannot be classified. Capture only
+              networks you own or have written permission to monitor.
+            </p>
+          </details>
+        </div>
       </div>
     </section>
 
@@ -62,20 +102,21 @@
         <div class="nw-kpi"><p>Inbound</p><b id="kpi-in">—</b><span>last 60 seconds</span></div>
         <div class="nw-kpi"><p>Outbound</p><b id="kpi-out">—</b><span>last 60 seconds</span></div>
         <div class="nw-kpi"><p>Active hosts</p><b id="kpi-hosts">—</b><span>seen in this view</span></div>
-        <div class="nw-kpi"><p>Flows</p><b id="kpi-flows">—</b><span>sampled from capture</span></div>
+        <div class="nw-kpi"><p>Flows</p><b id="kpi-flows">—</b><span id="kpi-flows-note">sampled from capture</span></div>
         <div class="nw-kpi"><p>Open alerts</p><b id="kpi-alerts">—</b><span>review first</span></div>
       </div>
 
       <div class="nw-grid">
         <div class="nw-panel">
           <div class="nw-panel-head">
-            <h2>Throughput · last 60 seconds</h2>
+            <h2 id="chart-title">Throughput · last 60 seconds</h2>
             <span id="chart-range">inbound / outbound</span>
           </div>
           <canvas class="nw-chart" id="traffic-chart" aria-label="Inbound and outbound traffic chart"></canvas>
           <div class="nw-legend">
             <span><i style="background:var(--warn)"></i>Inbound</span>
             <span><i style="background:var(--info)"></i>Outbound</span>
+            <span id="legend-transit" hidden><i style="background:var(--good)"></i>Transit</span>
           </div>
         </div>
 
@@ -112,7 +153,7 @@
           <p class="eyebrow">Hosts</p>
           <h2>Who is talking, and to what.</h2>
         </div>
-        <p class="text-[11px] text-muted" style="color:var(--muted);font-size:11px">Remote hosts · bytes over the selected window</p>
+        <p id="hosts-note" style="color:var(--muted);font-size:11px">Remote hosts · bytes over the selected window</p>
       </div>
       <div class="nw-table-wrap">
         <table class="nw-table">
@@ -130,7 +171,7 @@
           <p class="eyebrow">Flows</p>
           <h2>Every conversation has a direction.</h2>
         </div>
-        <p style="color:var(--muted);font-size:11px">Metadata only · no payload or credential capture</p>
+        <p id="flow-note" style="color:var(--muted);font-size:11px">Metadata only · no payload or credential capture</p>
       </div>
 
       <div class="nw-filters">
@@ -153,7 +194,7 @@
       <div class="nw-table-wrap">
         <table class="nw-table">
           <thead>
-            <tr><th>Time</th><th>Host</th><th>Destination</th><th>Application</th><th>Protocol</th><th>Port</th><th>Direction</th><th class="num">Bytes</th><th>Verdict</th></tr>
+            <tr><th>Last seen</th><th>Host</th><th>Destination</th><th>Application</th><th>Protocol</th><th>Port</th><th>Direction</th><th class="num">Packets</th><th class="num">Bytes</th><th>Verdict</th></tr>
           </thead>
           <tbody id="flows-body"></tbody>
         </table>
@@ -163,7 +204,7 @@
     <section class="section" id="capture">
       <div class="nw-capture">
         <div>
-          <p class="eyebrow">Capture agent</p>
+          <p class="eyebrow">Capture agent · live metadata</p>
           <h2>Run it on a network you are authorized to monitor.</h2>
           <p>
             The public dashboard is a demonstration. The local agent uses
@@ -193,17 +234,20 @@ sudo python3 agent/kavach_network_agent.py --interface en0</pre>
           <p class="eyebrow">Source</p>
           <div class="nw-source">
             <div><span>Mode</span><b id="source-mode">Demo</b></div>
-            <div><span>Interface</span><b id="source-interface">demo0</b></div>
+            <div><span>Source</span><b id="source-interface">demo0</b></div>
+            <div><span>Capture host</span><b id="source-local">—</b></div>
             <div><span>Packets</span><b id="source-packets">—</b></div>
             <div><span>Flows</span><b id="source-flows">—</b></div>
+            <div id="source-transit-row" hidden><span>Transit</span><b id="source-transit">—</b></div>
             <div><span>Dropped</span><b id="source-drops">—</b></div>
-            <div><span>Last update</span><b id="source-updated">—</b></div>
+            <div><span>Last packet</span><b id="source-updated">—</b></div>
           </div>
           <p class="nw-note" id="source-error" style="display:none;border-left-color:var(--bad)"></p>
           <p class="nw-note" style="margin-top:14px">
             The agent is read-only: it never modifies, injects or blocks traffic. The
             dashboard classifies applications from ports and flow metadata, not by
-            opening payloads.
+            opening payloads. Imported captures are parsed locally in this tab and are
+            not sent to any server.
           </p>
         </div>
       </div>
@@ -225,6 +269,7 @@ sudo python3 agent/kavach_network_agent.py --interface en0</pre>
     </div>
   </footer>
 
-  <script src="/network/app.js"></script>
+  <script src="/network/pcap.js?v=20261120"></script>
+  <script src="/network/app.js?v=20261120"></script>
 </body>
 </html>
