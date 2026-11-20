@@ -1,0 +1,5 @@
+[
+  { "value": "10.20.4.15", "label": "SAP S/4HANA production" },
+  { "value": "10.30.7.40", "label": "PLC line 2" },
+  { "value": "10.30.7.50", "label": "OT historian" }
+]

@@ -109,6 +109,87 @@ Use an account with the required WinRM and local administrator rights, and
 capture only hosts you are authorized to monitor. Adjust the duration and
 `pktmon filter` to keep the capture small.
 
+## Sensor hub
+
+The optional sensor hub runs beside the capture agent and turns open-source
+telemetry into a shared entity graph and read-only triage cases:
+
+```bash
+python3 agent/kavach_sensor_hub.py --demo
+```
+
+Open `http://127.0.0.1:8789/`. The demo seeds synthetic Zeek, osquery and
+Wazuh events and six triage cases.
+
+For real telemetry:
+
+```bash
+python3 agent/kavach_sensor_hub.py \
+  --zeek-dir /opt/zeek/logs/current \
+  --osquery \
+  --wazuh-alerts /var/ossec/logs/alerts/alerts.json \
+  --critical-assets agent/critical-assets.example.json
+```
+
+Optional flags:
+
+```text
+--zeek-replay            read existing Zeek logs instead of tailing new lines
+--osqueryi PATH          path to osqueryi
+--osquery-interval 30    socket poll interval in seconds
+--wazuh-replay           read existing Wazuh alerts
+--archive PATH           append normalised events to a JSONL archive
+--token TOKEN            require Bearer TOKEN for POST requests
+--host 127.0.0.1         bind address; keep it local unless you have controls
+--port 8789              dashboard and API port
+```
+
+Zeek must write JSON logs. On a standard Zeek install:
+
+```zeek
+@load policy/tuning/json-logs
+```
+
+The hub reads `conn`, `dns`, `ssl`, `http`, `ssh`, `notice`, `weird`, `files`
+and `smb_files` logs. It never stores packet payloads.
+
+osquery is queried for `process_open_sockets` joined to `processes` and `users`,
+which gives the missing process/user attribution for a socket. Wazuh
+`alerts.json` supplies Windows 4624/4625 and other endpoint alerts.
+
+### Ingest API
+
+Push normalised events from any sensor:
+
+```bash
+curl -X POST http://127.0.0.1:8789/api/v1/events \
+  -H 'Content-Type: application/json' \
+  -d '{"events":[{"ts":1773306600,"sensor":"custom","kind":"auth","user":"priya.n","host":"WS-PRIYA","src_ip":"45.33.32.156","result":"success","message":"Sign-in"}]}'
+```
+
+Useful read-only endpoints:
+
+```text
+GET  /api/v1/health
+GET  /api/v1/snapshot
+GET  /api/v1/events?limit=100
+GET  /api/v1/cases
+GET  /api/v1/entities?q=priya.n
+GET  /api/v1/entity?id=user:priya.n
+POST /api/v1/events
+```
+
+The hub binds to `127.0.0.1` by default. It does not take containment actions.
+The triage rules cover critical-asset access, identity/network correlation,
+suspicious process egress, authentication bursts, password spray and lateral
+movement. Cases cite the events that produced them.
+
+Tests:
+
+```bash
+python3 -m unittest agent/test_sensor_hub.py -v
+```
+
 ## What it classifies
 
 - Direction: inbound, outbound or transit, relative to the local interface

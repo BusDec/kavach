@@ -287,6 +287,7 @@ sudo python3 agent/kavach_network_agent.py --interface en0</pre>
           <div class="nw-links">
             <a href="https://github.com/BusDec/kavach/tree/main/agent">Agent source</a>
             <a href="/agent/README.md">Read the agent guide</a>
+            <a href="https://github.com/BusDec/kavach/blob/main/agent/README.md#sensor-hub">Sensor hub</a>
             <a href="https://gearbox.nirmanaerp.com/portfolio/">Nirmana portfolio</a>
           </div>
         </div>
@@ -307,7 +308,9 @@ sudo python3 agent/kavach_network_agent.py --interface en0</pre>
             The agent is read-only: it never modifies, injects or blocks traffic. The
             dashboard classifies applications from ports and flow metadata, not by
             opening payloads. Imported captures are parsed locally in this tab and are
-            not sent to any server.
+            not sent to any server. The optional Sensor hub adds Zeek, osquery and
+            Wazuh adapters, an entity graph and evidence-cited triage at
+            <code>127.0.0.1:8789</code>.
           </p>
         </div>
       </div>

@@ -110,6 +110,27 @@ wildcard hostnames. It flags matching flows and access events locally; it is
 never uploaded. The default examples are SAP, a PLC and an OT historian. Replace
 them with the client's systems from the **Critical assets** panel on either page.
 
+## Sensor hub
+
+`agent/kavach_sensor_hub.py` is an optional local service for organisations
+that already run open-source telemetry. It consumes Zeek JSON logs, osquery
+process/socket data, Wazuh alerts and HTTP push, builds an entity graph, and
+produces evidence-cited triage cases. It is read-only and takes no response
+actions.
+
+```bash
+python3 agent/kavach_sensor_hub.py --demo
+# or
+python3 agent/kavach_sensor_hub.py \
+  --zeek-dir /opt/zeek/logs/current \
+  --osquery \
+  --wazuh-alerts /var/ossec/logs/alerts/alerts.json \
+  --critical-assets agent/critical-assets.example.json
+```
+
+Open `http://127.0.0.1:8789/`. See `agent/README.md` for the adapters, ingest
+API and triage rules.
+
 ## Contact
 
 Dr. Santosh K Behera · [pilot@nirmanaerp.com](mailto:pilot@nirmanaerp.com)

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sensor hub · Kavach</title>
+  <meta name="description" content="Local read-only sensor hub for Zeek, osquery, Wazuh and normalised event ingestion.">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .sn-sensor-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .sn-sensor { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px; }
+    .sn-sensor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sn-sensor-head b { font-size: 12px; }
+    .sn-sensor p { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .sn-sensor .meta { margin-top: 10px; color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+    .sn-status { border-radius: 20px; padding: 3px 7px; font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .sn-status.online, .sn-status.demo { background: rgba(79,209,197,.1); color: var(--good); }
+    .sn-status.waiting { background: rgba(232,163,61,.12); color: var(--warn); }
+    .sn-status.error, .sn-status.unavailable { background: rgba(249,112,102,.12); color: var(--bad); }
+    .sn-case { border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; padding: 11px 12px; margin-bottom: 9px; background: var(--canvas); }
+    .sn-case.critical { border-left-color: var(--bad); }
+    .sn-case.high { border-left-color: var(--bad); }
+    .sn-case.medium { border-left-color: var(--warn); }
+    .sn-case-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .sn-case-head b { font-size: 12px; }
+    .sn-case p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .sn-case-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 9px; }
+    .sn-case-meta button { border: 0; background: none; color: var(--info); padding: 0; font: inherit; cursor: pointer; text-decoration: underline; }
+    .sn-evidence { margin: 9px 0 0; padding: 8px 0 0; border-top: 1px solid var(--line); display: grid; gap: 5px; }
+    .sn-evidence div { display: grid; grid-template-columns: 75px 70px 1fr; gap: 7px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .sn-evidence b { color: var(--ink); font-weight: 600; }
+    .sn-entity-search { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .sn-entity-search input, .sn-entity-search select { border: 1px solid var(--line); border-radius: 6px; background: var(--canvas); color: var(--ink); padding: 8px 9px; font: inherit; font-size: 10px; outline: none; }
+    .sn-entity-search input { flex: 1; min-width: 170px; }
+    .sn-entity-search button { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 8px 11px; font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
+    .sn-results { display: grid; gap: 0; margin-top: 10px; }
+    .sn-result { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--ink); padding: 8px 0; text-align: left; font: inherit; cursor: pointer; }
+    .sn-result:hover b { color: var(--warn); }
+    .sn-result b { display: block; font-size: 10px; }
+    .sn-result small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
+    .sn-result span { flex: none; color: var(--muted); font-size: 9px; }
+    .sn-timeline { display: grid; gap: 0; margin-top: 10px; }
+    .sn-timeline-row { display: grid; grid-template-columns: 85px 70px 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .sn-timeline-row b { color: var(--ink); font-weight: 600; }
+    .sn-detail-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; margin-top: 12px; }
+    .sn-detail-head b { font-size: 15px; }
+    .sn-detail-head span { color: var(--muted); font-size: 9px; }
+    .sn-empty { padding: 16px; color: var(--muted); font-size: 10px; text-align: center; }
+    .sn-error { display: none; border-left: 2px solid var(--bad); padding: 8px 10px; margin-top: 12px; color: var(--bad); font-size: 10px; }
+    .sn-note { color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .sn-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-top: 12px; }
+    .sn-toolbar .actions { margin-top: 0; }
+    .sn-toolbar button { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 7px 10px; font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
+    .sn-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .sn-rules { display: grid; gap: 0; margin-top: 14px; }
+    .sn-rule { border-top: 1px solid var(--line); padding: 8px 0; }
+    .sn-rule b { display: block; color: var(--ink); font-size: 10px; }
+    .sn-rule span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+    @media (max-width: 1000px) { .sn-sensor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sn-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .sn-sensor-grid { grid-template-columns: 1fr; } .sn-evidence div, .sn-timeline-row { grid-template-columns: 70px 1fr; } .sn-evidence div span:first-child, .sn-timeline-row span:first-child { grid-column: 1 / -1; } }
+    @media (max-width: 380px) { .sn-kpis { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark"></span>
+      <span class="brand-lockup">
+        <span class="brand-parent">Nirmana</span>
+        <span class="brand-name">Kavach</span>
+      </span>
+    </a>
+    <nav aria-label="Primary">
+      <a href="/">Sensor hub</a>
+      <a href="/api/v1/health">API health</a>
+      <a href="/api/v1/snapshot">Snapshot API</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="crumbs"><span>Kavach</span><span>/</span><span>Sensor hub</span></div>
+    <section class="page-hero">
+      <p class="eyebrow">Local sensor hub · read-only triage</p>
+      <h1 class="page-title">One timeline across network, identity and endpoint.</h1>
+      <p class="page-lede">
+        Normalised events from Zeek, osquery, Wazuh and HTTP ingest. The hub builds
+        an entity graph and raises evidence-cited triage cases. It does not capture
+        payloads and it does not take response actions.
+      </p>
+      <div class="nw-status">
+        <span class="nw-pill" id="hub-pill"><span class="dot"></span><span id="hub-label">Connecting to local API</span></span>
+        <span class="nw-pill">127.0.0.1 only</span>
+        <span class="nw-pill">Read-only triage</span>
+        <span class="nw-pill" id="refresh-pill">—</span>
+      </div>
+      <p class="sn-error" id="hub-error"></p>
+    </section>
+
+    <section class="section" id="sensors">
+      <div class="section-head">
+        <div><p class="eyebrow">Sensors</p><h2>Know what is feeding the graph.</h2></div>
+        <div class="sn-toolbar">
+          <button type="button" id="refresh-button">Refresh</button>
+          <button type="button" id="demo-button">Load demo</button>
+        </div>
+      </div>
+      <div class="sn-sensor-grid" id="sensor-cards"></div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="nw-kpis sn-kpis">
+        <div class="nw-kpi"><p>Events</p><b id="kpi-events">—</b><span>in the local graph</span></div>
+        <div class="nw-kpi"><p>Entities</p><b id="kpi-entities">—</b><span>users, hosts, IPs, domains</span></div>
+        <div class="nw-kpi"><p>Open cases</p><b id="kpi-cases">—</b><span>evidence-cited</span></div>
+        <div class="nw-kpi"><p>Critical assets</p><b id="kpi-assets">—</b><span>watchlist</span></div>
+        <div class="nw-kpi"><p>Sensors</p><b id="kpi-sensors">—</b><span>reporting</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="nw-grid two">
+        <div class="nw-panel">
+          <div class="nw-panel-head"><h2>Triage cases</h2><span>read-only · evidence first</span></div>
+          <div id="cases"></div>
+        </div>
+        <div class="nw-panel">
+          <div class="nw-panel-head"><h2>Critical assets</h2><span>matching is local</span></div>
+          <div class="aw-rows" id="asset-list"></div>
+          <p class="sn-note" style="margin-top:14px">
+            Add or change the hub watchlist with <code>--critical-assets</code> when
+            starting the service. The browser dashboards use a separate local
+            watchlist.
+          </p>
+          <div class="sn-rules">
+            <div class="sn-rule"><b>Critical asset access</b><span>Any sensor event touching the configured watchlist.</span></div>
+            <div class="sn-rule"><b>Identity and network correlation</b><span>External success plus related flow or process activity within 30 minutes.</span></div>
+            <div class="sn-rule"><b>Suspicious process egress</b><span>PowerShell, cmd, curl, wget or similar processes contacting external hosts.</span></div>
+            <div class="sn-rule"><b>Authentication burst and spray</b><span>Five failures for one account, or one source against three or more accounts, in ten minutes.</span></div>
+            <div class="sn-rule"><b>Lateral movement</b><span>Three or more internal SMB, RDP or SSH destinations from one host in ten minutes.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="entity">
+      <div class="section-head">
+        <div><p class="eyebrow">Entity graph</p><h2>Ask what happened to a user, host or IP.</h2></div>
+        <p class="sn-note">Search the graph · click a result for its timeline</p>
+      </div>
+      <div class="nw-panel">
+        <form class="sn-entity-search" id="entity-form">
+          <input id="entity-query" type="search" placeholder="priya.n, 10.20.4.62, powershell.exe, update-check.example">
+          <select id="entity-type">
+            <option value="">Any type</option>
+            <option value="user">User</option>
+            <option value="host">Host</option>
+            <option value="ip">IP</option>
+            <option value="domain">Domain</option>
+            <option value="process">Process</option>
+            <option value="app">Application</option>
+          </select>
+          <button type="submit">Search</button>
+        </form>
+        <div class="sn-results" id="entity-results"></div>
+        <div id="entity-detail"></div>
+      </div>
+    </section>
+
+    <section class="section" id="events">
+      <div class="section-head">
+        <div><p class="eyebrow">Recent events</p><h2>The evidence trail.</h2></div>
+        <p class="sn-note" id="events-note">Waiting for events.</p>
+      </div>
+      <div class="nw-table-wrap">
+        <table class="nw-table" style="min-width:1000px">
+          <thead>
+            <tr><th>Time</th><th>Sensor</th><th>Kind</th><th>User / host</th><th>Source → destination</th><th>Message</th></tr>
+          </thead>
+          <tbody id="events-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <span class="brand-parent">Nirmana ERP</span>
+      <span class="footer-name">Kavach · Sensor hub</span>
+    </div>
+    <div class="footer-links">
+      <a href="/api/v1/health">Health</a>
+      <a href="/api/v1/events?limit=100">Events API</a>
+      <a href="/api/v1/cases">Cases API</a>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      let lastSnapshot = 0;
+
+      function esc(value) {
+        return String(value == null ? "" : value).replace(/[&<>"']/g, (c) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+        }[c]));
+      }
+
+      function fmtTime(ts) {
+        const n = Number(ts);
+        if (!n) return "—";
+        return new Date(n * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      }
+
+      function fmtNumber(value) {
+        return Number(value || 0).toLocaleString();
+      }
+
+      function showError(message) {
+        const el = $("hub-error");
+        if (!el) return;
+        el.textContent = message || "";
+        el.style.display = message ? "block" : "none";
+      }
+
+      async function api(path, options) {
+        const response = await fetch(path, { cache: "no-store", ...(options || {}) });
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.json();
+      }
+
+      function renderSensors(sensors, stats) {
+        const el = $("sensor-cards");
+        if (!el) return;
+        const rows = sensors && sensors.length ? sensors : [
+          { name: "ingest", status: "waiting", detail: "No sensors configured", events: 0 },
+        ];
+        el.innerHTML = rows.map((sensor) => `<div class="sn-sensor">
+          <div class="sn-sensor-head"><b>${esc(sensor.name)}</b><span class="sn-status ${esc(sensor.status)}">${esc(sensor.status)}</span></div>
+          <p>${esc(sensor.detail || sensor.error || "No detail")}</p>
+          <div class="meta">${fmtNumber(sensor.events)} events · ${sensor.lastEventAt ? fmtTime(sensor.lastEventAt) : "no events yet"}</div>
+        </div>`).join("");
+        $("kpi-sensors").textContent = fmtNumber((sensors || []).filter((s) => ["online", "demo"].includes(s.status)).length);
+        $("kpi-events").textContent = fmtNumber(stats.events);
+        $("kpi-entities").textContent = fmtNumber(stats.entities);
+        $("kpi-cases").textContent = fmtNumber(stats.cases);
+        $("kpi-assets").textContent = fmtNumber(stats.criticalAssets);
+      }
+
+      function renderCases(cases) {
+        const el = $("cases");
+        if (!el) return;
+        if (!cases.length) {
+          el.innerHTML = '<p class="sn-empty">No cases yet. Configure a sensor, push events to <code>/api/v1/events</code>, or load the demo.</p>';
+          return;
+        }
+        el.innerHTML = cases.slice(0, 10).map((item) => `<article class="sn-case ${esc(item.severity)}">
+          <div class="sn-case-head"><b>${esc(item.title)}</b><span class="nw-risk ${item.severity === "critical" || item.severity === "high" ? "high" : item.severity === "medium" ? "medium" : "low"}">${esc(item.severity)}</span></div>
+          <p>${esc(item.summary)}</p>
+          <div class="sn-case-meta">
+            <span>${esc(item.id)} · ${esc(item.rule)}</span>
+            <span>entity <button type="button" data-entity="${esc(item.entity)}">${esc(item.entity || "—")}</button></span>
+            <span>confidence ${Math.round(Number(item.confidence || 0) * 100)}%</span>
+            <span>${fmtTime(item.lastSeen)}</span>
+          </div>
+          <div class="sn-evidence">${(item.evidence || []).slice(-4).map((event) => `<div><span>${fmtTime(event.ts)}</span><b>${esc(event.sensor)} · ${esc(event.kind)}</b><span>${esc(event.message || `${event.src || ""} → ${event.dst || ""}`)}</span></div>`).join("")}</div>
+        </article>`).join("");
+        el.querySelectorAll("[data-entity]").forEach((button) => {
+          button.addEventListener("click", () => searchEntity(button.dataset.entity || ""));
+        });
+      }
+
+      function renderAssets(assets) {
+        const el = $("asset-list");
+        if (!el) return;
+        if (!assets || !assets.length) {
+          el.innerHTML = '<p class="sn-empty">No critical assets configured.</p>';
+          return;
+        }
+        el.innerHTML = assets.map((asset) => `<div class="aw-row" style="cursor:default">
+          <span class="aw-row-main"><b>${esc(asset.label || asset.value)}</b><small>${esc(asset.value)}</small></span>
+          <span class="nw-risk high">critical</span>
+        </div>`).join("");
+      }
+
+      function renderEvents(events) {
+        const body = $("events-body");
+        if (!body) return;
+        if (!events || !events.length) {
+          body.innerHTML = '<tr><td colspan="6" class="sn-empty">No events yet.</td></tr>';
+          $("events-note").textContent = "Waiting for events.";
+          return;
+        }
+        $("events-note").textContent = `${events.length} most recent events · no payloads retained`;
+        body.innerHTML = events.slice(0, 40).map((event) => `<tr>
+          <td>${fmtTime(event.ts)}</td>
+          <td><span class="nw-risk ${event.severity === "high" || event.severity === "critical" ? "high" : event.severity === "medium" ? "medium" : "low"}">${esc(event.sensor)}</span></td>
+          <td>${esc(event.kind)}</td>
+          <td><strong>${esc(event.user || event.host || "—")}</strong></td>
+          <td>${esc(event.src_ip || "—")} → ${esc(event.dst_ip || event.domain || "—")}</td>
+          <td>${esc(event.message || "—")}</td>
+        </tr>`).join("");
+      }
+
+      async function refresh() {
+        try {
+          const data = await api("/api/v1/snapshot");
+          lastSnapshot = data.generatedAt || Date.now() / 1000;
+          $("hub-pill").className = "nw-pill live";
+          $("hub-label").textContent = "Local API connected";
+          $("refresh-pill").textContent = `Updated · ${fmtTime(lastSnapshot)}`;
+          showError("");
+          renderSensors(data.sensors, data.stats);
+          renderCases(data.cases);
+          renderAssets(data.criticalAssets);
+          renderEvents(data.events);
+        } catch (error) {
+          $("hub-pill").className = "nw-pill error";
+          $("hub-label").textContent = "API unavailable";
+          $("refresh-pill").textContent = "Not connected";
+          showError(`Cannot reach /api/v1/snapshot: ${error.message}. Is the sensor hub running?`);
+        }
+      }
+
+      async function searchEntity(query) {
+        const q = String(query || "").trim();
+        if (q) $("entity-query").value = q;
+        try {
+          const data = await api(`/api/v1/entities?q=${encodeURIComponent(q)}&type=${encodeURIComponent($("entity-type").value)}`);
+          const results = $("entity-results");
+          if (!data.entities.length) {
+            results.innerHTML = '<p class="sn-empty">No matching entities. Try a user, hostname, IP, domain or process.</p>';
+            return;
+          }
+          results.innerHTML = data.entities.map((entity) => `<button class="sn-result" type="button" data-id="${esc(entity.id)}">
+            <span><b>${esc(entity.label)}</b><small>${esc(entity.type)} · ${esc(entity.value)}${entity.critical ? " · critical" : ""}</small></span>
+            <span>${fmtNumber(entity.count)} events</span>
+          </button>`).join("");
+          results.querySelectorAll("[data-id]").forEach((button) => {
+            button.addEventListener("click", () => loadEntity(button.dataset.id || ""));
+          });
+        } catch (error) {
+          showError(`Entity search failed: ${error.message}`);
+        }
+      }
+
+      async function loadEntity(nodeId) {
+        if (!nodeId) return;
+        try {
+          const data = await api(`/api/v1/entity?id=${encodeURIComponent(nodeId)}`);
+          const node = data.node;
+          const neighbors = (data.neighbors || []).slice(0, 8).map((row) => `${row.relation} ${row.node.label}`).join(" · ");
+          const timeline = (data.timeline || []).slice(0, 30).map((event) => `<div class="sn-timeline-row">
+            <span>${fmtTime(event.ts)}</span>
+            <b>${esc(event.sensor)}</b>
+            <span>${esc(event.message || `${event.src_ip || ""} → ${event.dst_ip || ""}`)}</span>
+          </div>`).join("");
+          $("entity-detail").innerHTML = `<div class="sn-detail-head"><b>${esc(node.label)}</b><span>${esc(node.type)} · ${esc(node.value)}${node.critical ? " · critical asset" : ""}</span></div>
+            <p class="sn-note">${fmtNumber(node.count)} observations · first ${fmtTime(node.firstSeen)} · last ${fmtTime(node.lastSeen)}</p>
+            <p class="sn-note">${esc(neighbors || "No graph neighbours yet.")}</p>
+            <div class="sn-timeline">${timeline || '<p class="sn-empty">No timeline events.</p>'}</div>`;
+        } catch (error) {
+          showError(`Entity timeline failed: ${error.message}`);
+        }
+      }
+
+      async function loadDemo() {
+        try {
+          await api("/api/v1/demo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          await refresh();
+        } catch (error) {
+          showError(`Demo load failed: ${error.message}`);
+        }
+      }
+
+      $("refresh-button").addEventListener("click", refresh);
+      $("demo-button").addEventListener("click", loadDemo);
+      $("entity-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        searchEntity($("entity-query").value);
+      });
+      refresh();
+      window.setInterval(() => {
+        if (!document.hidden) refresh();
+      }, 3000);
+    })();
+  </script>
+</body>
+</html>
